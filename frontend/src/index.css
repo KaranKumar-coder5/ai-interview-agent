@@ -1,0 +1,22 @@
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  color: #213547;
+  background-color: #ffffff;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  min-height: 100vh;
+}
+
+#root {
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.app .status {
+  opacity: 0.6;
+  font-style: italic;
+}
