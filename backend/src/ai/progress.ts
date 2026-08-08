@@ -37,6 +37,7 @@ export function buildSessionProgress(session: Session): SessionProgress {
     currentPosition,
     completed: session.done,
     feedback,
+    turns: session.turns,
   };
 }
 

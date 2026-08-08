@@ -39,21 +39,84 @@ export function useInterview() {
   const [progress, setProgress] = useState<SessionProgress | null>(null);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
 
-  // Check health and restore candidate session from sessionStorage on mount
+  const refreshProgress = useCallback(async (sid: string) => {
+    try {
+      const prog = await getSessionProgress(sid);
+      setProgress(prog);
+      if (prog.turns) {
+        setTurns(prog.turns);
+      }
+      if (prog.currentPosition) {
+        setCurrentDay(prog.currentPosition.day);
+        setCurrentDayTitle(prog.currentPosition.dayTitle);
+        setCurrentTopic(prog.currentPosition.topic);
+        setCurrentQuestion(prog.currentPosition.question);
+        setIsFollowUp(prog.currentPosition.question.includes("[Follow-up]"));
+      }
+      return prog;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // Check health and restore candidate & active session on mount
   useEffect(() => {
     getHealth()
       .then(() => setBackendOnline(true))
       .catch(() => setBackendOnline(false));
 
-    const savedId = sessionStorage.getItem("candidateId");
-    if (savedId) {
+    const savedCandidateId = sessionStorage.getItem("candidateId");
+    const savedSessionId = sessionStorage.getItem("sessionId");
+
+    if (savedCandidateId) {
       setIsAuthChecking(true);
-      getCandidate(savedId)
-        .then((prof) => {
+      getCandidate(savedCandidateId)
+        .then(async (prof) => {
           setCurrentCandidate(prof);
+
+          // Restore active or completed interview session if present
+          if (savedSessionId) {
+            try {
+              const prog = await getSessionProgress(savedSessionId);
+              setSessionId(savedSessionId);
+              setProgress(prog);
+              if (prog.turns) {
+                setTurns(prog.turns);
+              }
+
+              if (prog.completed) {
+                setIsCompleted(true);
+                try {
+                  const sum = await getSessionSummary(savedSessionId);
+                  setSummary(sum);
+                } catch {
+                  // Summary fallback to progress.feedback
+                }
+                setActiveTab("results");
+              } else {
+                setIsCompleted(false);
+                if (prog.currentPosition) {
+                  setCurrentDay(prog.currentPosition.day);
+                  setCurrentDayTitle(prog.currentPosition.dayTitle);
+                  setCurrentTopic(prog.currentPosition.topic);
+                  setCurrentQuestion(prog.currentPosition.question);
+                  setIsFollowUp(prog.currentPosition.question.includes("[Follow-up]"));
+                }
+                setActiveTab("interview");
+              }
+            } catch {
+              // Stale session ID (e.g. backend process restarted)
+              sessionStorage.removeItem("sessionId");
+              setSessionId(null);
+              setProgress(null);
+              setSummary(null);
+              setActiveTab("dashboard");
+            }
+          }
         })
         .catch(() => {
           sessionStorage.removeItem("candidateId");
+          sessionStorage.removeItem("sessionId");
         })
         .finally(() => setIsAuthChecking(false));
     } else {
@@ -82,30 +145,16 @@ export function useInterview() {
 
   const handleLogout = () => {
     sessionStorage.removeItem("candidateId");
+    sessionStorage.removeItem("sessionId");
     setCurrentCandidate(null);
     setSessionId(null);
     setProgress(null);
     setSummary(null);
     setTurns([]);
+    setIsCompleted(false);
     setActiveTab("dashboard");
     setAuthError(null);
   };
-
-  const refreshProgress = useCallback(async (sid: string) => {
-    try {
-      const prog = await getSessionProgress(sid);
-      setProgress(prog);
-      if (prog.currentPosition) {
-        setCurrentDay(prog.currentPosition.day);
-        setCurrentDayTitle(prog.currentPosition.dayTitle);
-        setCurrentTopic(prog.currentPosition.topic);
-        setCurrentQuestion(prog.currentPosition.question);
-      }
-      return prog;
-    } catch {
-      return null;
-    }
-  }, []);
 
   const handleStartInterview = async () => {
     if (!currentCandidate) return;
@@ -117,17 +166,24 @@ export function useInterview() {
     try {
       const res = await startInterview(newSessionId, currentCandidate.member.id);
 
+      sessionStorage.setItem("sessionId", newSessionId);
       setSessionId(newSessionId);
       setIsCompleted(false);
       setSummary(null);
+      setTurns([]);
 
-      // Fetch progress to initialize turn context
+      // Fetch progress to initialize turn context & position
       const prog = await refreshProgress(newSessionId);
-      if (!prog?.currentPosition) {
+      if (prog?.currentPosition) {
+        setCurrentDay(prog.currentPosition.day);
+        setCurrentDayTitle(prog.currentPosition.dayTitle);
+        setCurrentTopic(prog.currentPosition.topic);
+        setCurrentQuestion(prog.currentPosition.question);
+        setIsFollowUp(prog.currentPosition.question.includes("[Follow-up]"));
+      } else {
         setCurrentQuestion(res.reply);
       }
 
-      setTurns([]);
       setActiveTab("interview");
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to start interview session.");
@@ -164,9 +220,14 @@ export function useInterview() {
         // Fetch progress to get updated current position and turn state
         const prog = await refreshProgress(sessionId);
         if (prog?.currentPosition) {
-          setIsFollowUp(prog.currentPosition.question.includes("[Follow-up]"));
+          setCurrentDay(prog.currentPosition.day);
+          setCurrentDayTitle(prog.currentPosition.dayTitle);
+          setCurrentTopic(prog.currentPosition.topic);
+          setCurrentQuestion(prog.currentPosition.question);
+          setIsFollowUp(prog.currentPosition.question.includes("[Follow-up]") || res.reply.includes("[Follow-up]"));
         } else {
           setCurrentQuestion(res.reply);
+          setIsFollowUp(res.reply.includes("[Follow-up]"));
         }
       }
     } catch (err: any) {
