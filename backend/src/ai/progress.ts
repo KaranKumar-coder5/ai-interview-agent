@@ -26,6 +26,7 @@ export function buildSessionProgress(session: Session): SessionProgress {
 
   return {
     sessionId: session.sessionId,
+    candidateId: session.candidateId,
     candidate: session.candidate,
     status: session.done ? "completed" : "active",
     questionsAsked,
@@ -62,6 +63,7 @@ export function buildSessionSummary(session: Session): SessionSummary {
 
   return {
     sessionId: session.sessionId,
+    candidateId: session.candidateId,
     candidate: session.candidate,
     completed: true,
     totalQuestions: session.turns.length,

@@ -28,6 +28,11 @@ export { GeminiProvider } from "./llm/gemini.js";
 export { DeterministicInterviewProvider } from "./llm/provider.js";
 export type { LLMProvider } from "./llm/provider.js";
 export {
+  derivePersonalizationSignals,
+  getPersonalizedQuestionAt,
+  getPersonalizedQuestions,
+} from "./personalization.js";
+export {
   buildSessionProgress,
   buildSessionSummary,
   getSessionProgress,
@@ -51,9 +56,11 @@ export async function startInterview(
   candidateOrId: Candidate | string,
 ): Promise<InterviewResponse> {
   let candidateProfile: Candidate;
+  let candidateId: string | undefined;
 
   if (typeof candidateOrId === "string") {
-    const foundRecord = getCandidateById(candidateOrId.trim());
+    candidateId = candidateOrId.trim();
+    const foundRecord = getCandidateById(candidateId);
     if (!foundRecord) {
       throw new InterviewError(
         "candidate_not_found",
@@ -63,6 +70,7 @@ export async function startInterview(
     candidateProfile = candidateRecordToCandidate(foundRecord);
   } else if (candidateOrId && typeof candidateOrId === "object") {
     if (candidateOrId.id) {
+      candidateId = candidateOrId.id;
       const foundRecord = getCandidateById(candidateOrId.id);
       candidateProfile = foundRecord
         ? candidateRecordToCandidate(foundRecord)
@@ -77,7 +85,7 @@ export async function startInterview(
     );
   }
 
-  const session = createSession(sessionId, candidateProfile);
+  const session = createSession(sessionId, candidateProfile, candidateId);
   const planner = new InterviewPlanner(currentProvider);
 
   const plan = await planner.planNextTurn(session);

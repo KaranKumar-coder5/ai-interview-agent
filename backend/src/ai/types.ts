@@ -106,6 +106,7 @@ export interface InterviewTurn {
 
 export interface Session {
   sessionId: string;
+  candidateId?: string;
   candidate: Candidate;
   turns: InterviewTurn[];
   /** Question ids asked so far, in order. */
@@ -157,6 +158,7 @@ export interface CurrentPosition {
 
 export interface SessionProgress {
   sessionId: string;
+  candidateId?: string;
   candidate: Candidate;
   status: "active" | "completed";
   questionsAsked: number;
@@ -171,6 +173,7 @@ export interface SessionProgress {
 
 export interface SessionSummary {
   sessionId: string;
+  candidateId?: string;
   candidate: Candidate;
   completed: boolean;
   totalQuestions: number;

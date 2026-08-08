@@ -1,7 +1,9 @@
-import { getQuestionAt, totalQuestions } from "./questions.js";
+import { getCandidateById } from "./data.js";
+import { getPersonalizedQuestionAt, derivePersonalizationSignals } from "./personalization.js";
+import { totalQuestions } from "./questions.js";
 import { DecisionStrategy } from "./strategy.js";
 import type { LLMProvider } from "./llm/provider.js";
-import type { AnswerAnalysis, InterviewTurn, Question, Session } from "./types.js";
+import type { AnswerAnalysis, InterviewTurn, Session } from "./types.js";
 
 export class InterviewPlanner {
   private strategy = new DecisionStrategy();
@@ -16,8 +18,11 @@ export class InterviewPlanner {
     reply: string;
     turn?: InterviewTurn;
   }> {
+    const candidateId = session.candidateId || session.candidate.id;
+    const candidateRecord = candidateId ? getCandidateById(candidateId) : undefined;
+
     const currentQuestionIndex = session.nextQuestionIndex;
-    const currentQuestion = getQuestionAt(currentQuestionIndex);
+    const currentQuestion = getPersonalizedQuestionAt(currentQuestionIndex, candidateRecord);
 
     // Check if we should generate a follow-up on the current question
     if (
@@ -55,7 +60,7 @@ export class InterviewPlanner {
     const isFirstQuestion = session.turns.length === 0;
     const nextIndex = isFirstQuestion ? 0 : currentQuestionIndex + 1;
 
-    const nextQuestion = getQuestionAt(nextIndex);
+    const nextQuestion = getPersonalizedQuestionAt(nextIndex, candidateRecord);
 
     if (!nextQuestion || nextIndex >= totalQuestions()) {
       session.done = true;
@@ -78,9 +83,17 @@ export class InterviewPlanner {
       isFollowUp: false,
     };
 
-    const prefix = isFirstQuestion
-      ? `Hi ${session.candidate.name}! Welcome to your technical interview. Let's begin with Day ${nextQuestion.day} — ${nextQuestion.dayTitle}. `
-      : `Day ${nextQuestion.day} — ${nextQuestion.dayTitle}: `;
+    let prefix = `Day ${nextQuestion.day} — ${nextQuestion.dayTitle}: `;
+
+    if (isFirstQuestion) {
+      const signals = derivePersonalizationSignals(candidateRecord);
+      const topDomain = signals.sort((a, b) => b.riskScore - a.riskScore)[0];
+      const hasFocusArea = topDomain && topDomain.riskScore > 0;
+
+      prefix = hasFocusArea
+        ? `Hi ${session.candidate.name}! Welcome to your technical interview. Based on your cohort journey, let's begin with Day ${nextQuestion.day} — ${nextQuestion.dayTitle}. `
+        : `Hi ${session.candidate.name}! Welcome to your technical interview. Let's begin with Day ${nextQuestion.day} — ${nextQuestion.dayTitle}. `;
+    }
 
     return {
       done: false,

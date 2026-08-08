@@ -6,9 +6,14 @@ import type { Candidate, Session } from "./types.js";
  */
 const sessions = new Map<string, Session>();
 
-export function createSession(sessionId: string, candidate: Candidate): Session {
+export function createSession(
+  sessionId: string,
+  candidate: Candidate,
+  candidateId?: string,
+): Session {
   const session: Session = {
     sessionId,
+    candidateId: candidateId || candidate.id,
     candidate,
     turns: [],
     askedQuestions: [],
