@@ -1,8 +1,70 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import { continueInterview, InterviewError, startInterview } from "../ai/index.js";
+import {
+  continueInterview,
+  getSessionProgress,
+  getSessionSummary,
+  InterviewError,
+  startInterview,
+} from "../ai/index.js";
 
 export const interviewRouter = Router();
+
+/**
+ * GET /api/interview/:sessionId/progress
+ *
+ * Returns derived session progress for an active or completed interview.
+ */
+interviewRouter.get("/:sessionId/progress", (req: Request, res: Response) => {
+  const sessionId = req.params.sessionId?.trim();
+  if (!sessionId) {
+    res.status(400).json({
+      error: "invalid_request",
+      message: "sessionId is required.",
+    });
+    return;
+  }
+
+  try {
+    const progress = getSessionProgress(sessionId);
+    res.json(progress);
+  } catch (err) {
+    if (err instanceof InterviewError) {
+      const status = err.code === "session_not_found" ? 404 : 400;
+      res.status(status).json({ error: err.code, message: err.message });
+      return;
+    }
+    throw err;
+  }
+});
+
+/**
+ * GET /api/interview/:sessionId/summary
+ *
+ * Returns summary and feedback for a completed interview session.
+ */
+interviewRouter.get("/:sessionId/summary", (req: Request, res: Response) => {
+  const sessionId = req.params.sessionId?.trim();
+  if (!sessionId) {
+    res.status(400).json({
+      error: "invalid_request",
+      message: "sessionId is required.",
+    });
+    return;
+  }
+
+  try {
+    const summary = getSessionSummary(sessionId);
+    res.json(summary);
+  } catch (err) {
+    if (err instanceof InterviewError) {
+      const status = err.code === "session_not_found" ? 404 : 400;
+      res.status(status).json({ error: err.code, message: err.message });
+      return;
+    }
+    throw err;
+  }
+});
 
 /**
  * POST /api/interview

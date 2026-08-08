@@ -47,6 +47,27 @@ describe("HTTP API Smoke Test", () => {
     assert.match(data.reply, /Hi SmokeTester/);
   });
 
+  it("GET /api/interview/:sessionId/progress returns 200 for active session", async () => {
+    const res = await fetch(`${baseUrl}/api/interview/smoke-session-1/progress`);
+    assert.equal(res.status, 200);
+    const data = (await res.json()) as any;
+
+    assert.equal(data.sessionId, "smoke-session-1");
+    assert.equal(data.candidate.name, "SmokeTester");
+    assert.equal(data.status, "active");
+    assert.equal(data.completed, false);
+    assert.equal(data.questionsAsked, 1);
+    assert.equal(data.answersRecorded, 0);
+    assert.equal(data.feedback, null);
+  });
+
+  it("GET /api/interview/:sessionId/summary returns 400 for active session", async () => {
+    const res = await fetch(`${baseUrl}/api/interview/smoke-session-1/summary`);
+    assert.equal(res.status, 400);
+    const data = (await res.json()) as any;
+    assert.equal(data.error, "interview_not_completed");
+  });
+
   it("POST /api/interview continues an existing session", async () => {
     const res = await fetch(`${baseUrl}/api/interview`, {
       method: "POST",
@@ -85,6 +106,20 @@ describe("HTTP API Smoke Test", () => {
       }),
     });
 
+    assert.equal(res.status, 404);
+    const data = (await res.json()) as any;
+    assert.equal(data.error, "session_not_found");
+  });
+
+  it("GET /api/interview/:sessionId/progress returns 404 for unknown sessionId", async () => {
+    const res = await fetch(`${baseUrl}/api/interview/non-existent-session-999/progress`);
+    assert.equal(res.status, 404);
+    const data = (await res.json()) as any;
+    assert.equal(data.error, "session_not_found");
+  });
+
+  it("GET /api/interview/:sessionId/summary returns 404 for unknown sessionId", async () => {
+    const res = await fetch(`${baseUrl}/api/interview/non-existent-session-999/summary`);
     assert.equal(res.status, 404);
     const data = (await res.json()) as any;
     assert.equal(data.error, "session_not_found");

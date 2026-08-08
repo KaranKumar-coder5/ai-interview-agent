@@ -89,3 +89,36 @@ export interface InterviewResponse {
   feedback: Feedback | null;
 }
 
+export interface CurrentPosition {
+  day: number;
+  dayTitle: string;
+  topic: string;
+  question: string;
+  questionIndex: number;
+}
+
+export interface SessionProgress {
+  sessionId: string;
+  candidate: Candidate;
+  status: "active" | "completed";
+  questionsAsked: number;
+  answersRecorded: number;
+  followUpCount: number;
+  daysCovered: number;
+  topicsCovered: number;
+  currentPosition: CurrentPosition | null;
+  completed: boolean;
+  feedback: Feedback | null;
+}
+
+export interface SessionSummary {
+  sessionId: string;
+  candidate: Candidate;
+  completed: boolean;
+  totalQuestions: number;
+  totalAnswers: number;
+  followUpsAsked: number;
+  daysCovered: number;
+  overallScore: number;
+  feedback: Feedback;
+}

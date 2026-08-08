@@ -5,28 +5,26 @@ import {
   getSession,
   markQuestionAsked,
 } from "./context.js";
+import { InterviewError } from "./errors.js";
 import { buildFeedback } from "./feedback.js";
 import { createProviderFromEnv } from "./llm/factory.js";
 import type { LLMProvider } from "./llm/provider.js";
 import { InterviewPlanner } from "./planner.js";
 import type { Candidate, InterviewResponse } from "./types.js";
 
+export { InterviewError } from "./errors.js";
 export { getLLMConfig } from "./llm/config.js";
 export { createProviderFromEnv } from "./llm/factory.js";
 export { FallbackInterviewProvider } from "./llm/fallback.js";
 export { GeminiProvider } from "./llm/gemini.js";
 export { DeterministicInterviewProvider } from "./llm/provider.js";
 export type { LLMProvider } from "./llm/provider.js";
-
-export class InterviewError extends Error {
-  constructor(
-    public readonly code: "session_not_found" | "interview_already_ended",
-    message: string,
-  ) {
-    super(message);
-    this.name = "InterviewError";
-  }
-}
+export {
+  buildSessionProgress,
+  buildSessionSummary,
+  getSessionProgress,
+  getSessionSummary,
+} from "./progress.js";
 
 // Configurable provider instance (defaulting to environment auto-detection)
 let currentProvider: LLMProvider = createProviderFromEnv();
