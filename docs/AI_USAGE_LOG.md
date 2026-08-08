@@ -111,3 +111,43 @@ All entries correspond to real implementation milestones, human reviews, automat
   - Executed backend test suite (`npm test -w backend`), passing 12/12 tests across 3 suites (`HTTP API Smoke Test`, `Interview Intelligence Architecture`, `interview flow`).
 - **Git Commit**: `9c8e07e` — `feat: add interview intelligence architecture`
 - **Notes / Limitations**: Default provider uses heuristic signal processing for offline deterministic operation. Architecture is fully prepared to accept real LLM adapters (e.g., `GeminiProvider`) in future milestones.
+
+---
+
+## Milestone 4: Gemini LLM Provider + Resilient Fallback (Backend Milestone 3)
+
+- **Date**: August 8, 2026
+- **Developer / Team Member**: Karan (Backend lead)
+- **AI Tool Used**: Antigravity AI Coding Assistant
+- **Development Milestone**: Backend Milestone 3 — Gemini LLM Provider + Resilient Fallback
+- **Goal**: Integrate a real Google Gemini LLM provider (`GeminiProvider`) behind the `LLMProvider` abstraction, backed by a resilient fallback provider (`FallbackInterviewProvider`) to provide graceful degradation to the deterministic provider when Gemini is unavailable or fails.
+- **Prompt Summary**: Requested implementation of environment configuration (`config.ts`), prompt builders (`prompts.ts`), structured output JSON validators (`validator.ts`), Gemini API client (`gemini.ts`), resilient fallback provider (`fallback.ts`), provider auto-factory (`factory.ts`), and unit/integration tests (`gemini-provider.test.ts`) while preserving API compatibility, server-side key security, and orchestrator constraints.
+- **Work Performed**:
+  - Implemented environment configuration loader (`backend/src/ai/llm/config.ts`) supporting `GEMINI_API_KEY`, `GEMINI_MODEL`, `LLM_PROVIDER`, and `LLM_TIMEOUT_MS`.
+  - Created isolated prompt builder module (`backend/src/ai/llm/prompts.ts`) formatting candidate profile, current curriculum day, topic, turn history, and evaluation persona.
+  - Built JSON schema parsers and validators (`backend/src/ai/llm/validator.ts`) for structured model outputs (`AnswerAnalysis`, `followUpQuestion`, `Feedback`).
+  - Created `GeminiProvider` (`backend/src/ai/llm/gemini.ts`) using official `@google/genai` SDK with `responseMimeType: "application/json"` and timeout guards.
+  - Implemented `FallbackInterviewProvider` (`backend/src/ai/llm/fallback.ts`) catching missing keys, network errors, timeouts, rate limits (429), and malformed JSON, degrading automatically to `DeterministicInterviewProvider`.
+  - Added provider auto-factory (`backend/src/ai/llm/factory.ts`) and updated orchestrator default provider in `backend/src/ai/index.ts`.
+  - Added `backend/.env.example` containing server-side configuration placeholders.
+  - Added comprehensive test suite (`backend/test/gemini-provider.test.ts`).
+- **Files or Areas Affected**:
+  - `backend/src/ai/llm/config.ts` [NEW]
+  - `backend/src/ai/llm/prompts.ts` [NEW]
+  - `backend/src/ai/llm/validator.ts` [NEW]
+  - `backend/src/ai/llm/gemini.ts` [NEW]
+  - `backend/src/ai/llm/fallback.ts` [NEW]
+  - `backend/src/ai/llm/factory.ts` [NEW]
+  - `backend/test/gemini-provider.test.ts` [NEW]
+  - `backend/.env.example` [NEW]
+  - `backend/src/ai/index.ts`
+  - `backend/package.json`
+  - `package-lock.json`
+- **Human Review Performed**:
+  - Verified server-side API key protection (no hardcoded keys, `.env` in `.gitignore`, placeholder `.env.example`), 100% backward compatibility of `POST /api/interview`, strict orchestrator control over minimum 8 questions and 4 curriculum days, and complete fallback path validation.
+- **Testing Performed**:
+  - Executed `npm run typecheck` across workspaces (0 errors).
+  - Executed backend test suite (`npm test -w backend`), passing 20/20 tests across 4 suites (`Gemini Provider, Validator & Resilient Fallback Tests`, `HTTP API Smoke Test`, `Interview Intelligence Architecture`, `interview flow`).
+  - Verified structured output validation, deterministic fallback triggers, timeout handling, missing key handling, 8+ question minimum enforcement, 4+ day minimum enforcement, and HTTP API compatibility.
+- **Git Commit**: `f239ae8` — `feat: integrate Gemini interview provider`
+- **Notes / Limitations**: The application is configured to use Gemini when `GEMINI_API_KEY` is present in the server environment. The normal automated test suite does not require a live Gemini API call and uses deterministic/mocked behavior where applicable.
