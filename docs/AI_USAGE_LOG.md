@@ -382,3 +382,71 @@ All entries correspond to real implementation milestones, human reviews, automat
   - Verified end-to-end integration between frontend candidate access flow and backend personalized interview engine.
 - **Git Commit**: `[Pending commit]`
 - **Notes / Limitations**: Provides hackathon-appropriate candidate access based on authoritative candidate IDs.
+
+---
+
+## Milestone 12 — Live Groq LLM Integration
+
+- **Date**: August 9, 2026
+- **Developer / Team Member**: Karan (Backend lead)
+- **AI Tool Used**: Antigravity AI Coding Assistant
+- **Development Milestone**: Live Groq LLM Integration
+- **Goal**: Document the integration of Groq as the active live LLM provider for the AI interview system, while preserving the existing provider abstraction and deterministic fallback architecture.
+- **Development History**:
+  - Cerebras was initially integrated and tested as a potential live provider.
+  - The technical integration successfully established HTTP connections to the Cerebras API.
+  - The initial model `llama-3.3-70b` returned HTTP 404 Not Found because the model ID was unavailable to the API account.
+  - Available Cerebras models were inspected via `GET /v1/models`, identifying `gpt-oss-120b` as available.
+  - A subsequent live request using `gpt-oss-120b` returned HTTP 402 Payment Required because inference access required billing/credits on the Cerebras account.
+  - *Technical Classification*: The Cerebras technical integration succeeded and the API endpoint was reached, but inference execution was blocked by account billing/credit requirements. The `CerebrasProvider` remains preserved in the codebase as an optional provider adapter.
+- **Groq Integration**:
+  - Implemented `GroqProvider` (`backend/src/ai/llm/groq.ts`) connecting to the OpenAI-compatible Groq Chat Completions API.
+  - **Endpoint**: `https://api.groq.com/openai/v1/chat/completions`
+  - **Provider ID**: `groq`
+  - **Model**: `openai/gpt-oss-120b`
+  - **Authentication**: `GROQ_API_KEY` loaded strictly by the backend from local environment configuration (`backend/.env`).
+  - **Secret Security**: The API key is never placed in frontend code, Vite variables, source files, logs, error tracebacks, test files, or committed files.
+  - **Structured Outputs**: Requested via `response_format: { type: "json_object" }` and validated by existing backend JSON validators (`parseJsonContent`, `validateAnswerAnalysis`, `validateFollowUp`, `validateFeedback`).
+  - **Resilience**: Bounded by `AbortController` timeout protection (`LLM_TIMEOUT_MS`).
+  - **Reuse**: Reused existing prompt builders (`prompts.ts`), domain interfaces (`LLMProvider`), and validation schemas (`validator.ts`).
+- **Configuration**:
+  - `LLM_PROVIDER=groq`
+  - `GROQ_API_KEY=<secret stored locally and never committed>`
+  - `GROQ_MODEL=openai/gpt-oss-120b`
+  - `LLM_TIMEOUT_MS=10000`
+- **Provider Architecture**:
+  - **Live Execution Path**:
+    Frontend → Backend interview API (`POST /api/interview`) → LLM provider factory (`createProviderFromEnv`) → `GroqProvider` → Groq API → structured response validation → interview evaluation
+  - **Fallback Path**:
+    `GroqProvider` → `FallbackInterviewProvider` → `DeterministicInterviewProvider`
+  - **Provider Observability**:
+    - Successful live Groq request: `{ provider: "groq", fallback: false }`
+    - Runtime failure: `{ provider: "groq", fallback: true, fallbackReason: "<reason>" }`
+- **Live Verification**:
+  - Verified live execution against Groq Chat Completions API.
+  - The development observability status endpoint (`GET /api/dev/llm-status`) returned:
+    ```json
+    {
+      "provider": "groq",
+      "fallback": false
+    }
+    ```
+- **Files or Areas Affected**:
+  - `docs/AI_USAGE_LOG.md`
+  - `backend/src/ai/llm/groq.ts`
+  - `backend/src/ai/llm/config.ts`
+  - `backend/src/ai/llm/factory.ts`
+  - `backend/src/ai/llm/fallback.ts`
+  - `backend/src/ai/index.ts`
+  - `backend/src/routes/dev.ts`
+  - `backend/test/groq-provider.test.ts`
+  - `backend/package.json`
+- **Human Review Performed**:
+  - Verified live LLM response evaluation, verified zero secret leakage in logs/APIs/frontend, verified deterministic fallback preservation, and verified exact provider observability reporting (`{ provider: "groq", fallback: false }`).
+- **Testing Performed**:
+  - Executed `npm run typecheck` across workspaces (0 errors).
+  - Executed backend test suite (`npm test -w backend`), passing 112/112 tests across 10 test suites.
+  - Executed `npm run build` (clean backend and frontend production builds).
+  - Verified `git diff --check` (0 formatting/whitespace errors).
+- **Git Commit**: `[Pending commit]`
+- **Notes / Limitations**: Groq is configured as the active primary live LLM provider using `openai/gpt-oss-120b`. Gemini, Grok/xAI, and Cerebras adapters remain preserved in the codebase for multi-provider flexibility.
