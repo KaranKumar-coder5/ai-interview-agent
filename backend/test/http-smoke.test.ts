@@ -217,4 +217,13 @@ describe("HTTP API Smoke Test & Candidate ID API Tests", () => {
     const data = (await res.json()) as any;
     assert.equal(data.error, "session_not_found");
   });
+
+  it("GET /api/dev/llm-status returns 200 with observability status", async () => {
+    const res = await fetch(`${baseUrl}/api/dev/llm-status`);
+    assert.equal(res.status, 200);
+    const data = (await res.json()) as any;
+
+    assert.ok(typeof data.provider === "string");
+    assert.ok(typeof data.fallback === "boolean");
+  });
 });

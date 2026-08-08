@@ -72,6 +72,47 @@ describe("Gemini Provider, Validator & Resilient Fallback Tests", () => {
     }
   });
 
+  it("1c. Resolves Cerebras configuration when LLM_PROVIDER=cerebras or CEREBRAS_API_KEY is present", () => {
+    const origProvider = process.env.LLM_PROVIDER;
+    const origCerebrasKey = process.env.CEREBRAS_API_KEY;
+    const origCerebrasModel = process.env.CEREBRAS_MODEL;
+    const origGeminiKey = process.env.GEMINI_API_KEY;
+
+    try {
+      delete process.env.GEMINI_API_KEY;
+      process.env.LLM_PROVIDER = "cerebras";
+      process.env.CEREBRAS_API_KEY = "csk-test-key-456";
+      process.env.CEREBRAS_MODEL = "llama-3.3-70b-custom";
+
+      const config = getLLMConfig();
+      assert.equal(config.provider, "cerebras");
+      assert.equal(config.apiKey, "csk-test-key-456");
+      assert.equal(config.model, "llama-3.3-70b-custom");
+
+      // Default model test
+      delete process.env.CEREBRAS_MODEL;
+      const configDefaultModel = getLLMConfig();
+      assert.equal(configDefaultModel.model, "llama-3.3-70b");
+
+      // Test fallback auto-resolution when LLM_PROVIDER is unset but CEREBRAS_API_KEY is set
+      delete process.env.LLM_PROVIDER;
+      const configAuto = getLLMConfig();
+      assert.equal(configAuto.provider, "cerebras");
+
+      // Test explicit provider without API key (returns provider with undefined key without throwing)
+      process.env.LLM_PROVIDER = "cerebras";
+      delete process.env.CEREBRAS_API_KEY;
+      const configNoKey = getLLMConfig();
+      assert.equal(configNoKey.provider, "cerebras");
+      assert.equal(configNoKey.apiKey, undefined);
+    } finally {
+      if (origProvider) process.env.LLM_PROVIDER = origProvider; else delete process.env.LLM_PROVIDER;
+      if (origCerebrasKey) process.env.CEREBRAS_API_KEY = origCerebrasKey; else delete process.env.CEREBRAS_API_KEY;
+      if (origCerebrasModel) process.env.CEREBRAS_MODEL = origCerebrasModel; else delete process.env.CEREBRAS_MODEL;
+      if (origGeminiKey) process.env.GEMINI_API_KEY = origGeminiKey; else delete process.env.GEMINI_API_KEY;
+    }
+  });
+
   it("2. Parses and validates valid Answer Analysis JSON", () => {
     const raw = `\`\`\`json
     {

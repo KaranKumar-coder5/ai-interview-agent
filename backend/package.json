@@ -9,10 +9,11 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsx --test test/interview.test.ts test/intelligence.test.ts test/http-smoke.test.ts test/gemini-provider.test.ts test/progress.test.ts test/data-migration.test.ts test/personalization.test.ts test/grok-provider.test.ts"
+    "test": "tsx --test test/interview.test.ts test/intelligence.test.ts test/http-smoke.test.ts test/gemini-provider.test.ts test/progress.test.ts test/data-migration.test.ts test/personalization.test.ts test/grok-provider.test.ts test/cerebras-provider.test.ts test/groq-provider.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.16.0",
+    "dotenv": "^16.4.7",
     "express": "^4.21.2"
   },
   "devDependencies": {

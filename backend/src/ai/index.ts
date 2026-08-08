@@ -26,6 +26,8 @@ export { createProviderFromEnv } from "./llm/factory.js";
 export { FallbackInterviewProvider } from "./llm/fallback.js";
 export { GeminiProvider } from "./llm/gemini.js";
 export { GrokProvider } from "./llm/grok.js";
+export { CerebrasProvider } from "./llm/cerebras.js";
+export { GroqProvider } from "./llm/groq.js";
 export { DeterministicInterviewProvider } from "./llm/provider.js";
 export type { LLMProvider } from "./llm/provider.js";
 export {

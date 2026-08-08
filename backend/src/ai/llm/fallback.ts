@@ -12,7 +12,7 @@ export type FallbackReason =
   | "provider_error";
 
 export interface FallbackObservabilityState {
-  provider: "gemini" | "grok" | "deterministic";
+  provider: "gemini" | "grok" | "cerebras" | "groq" | "deterministic";
   fallback: boolean;
   fallbackReason?: FallbackReason;
 }
@@ -20,13 +20,13 @@ export interface FallbackObservabilityState {
 export class FallbackInterviewProvider implements LLMProvider {
   private primary: LLMProvider | null;
   private fallback: LLMProvider;
-  private primaryName: "gemini" | "grok" | "deterministic";
+  private primaryName: "gemini" | "grok" | "cerebras" | "groq" | "deterministic";
   private lastObservabilityState: FallbackObservabilityState;
 
   constructor(
     primaryProvider?: LLMProvider | null,
     fallbackProvider?: LLMProvider,
-    primaryName?: "gemini" | "grok" | "deterministic",
+    primaryName?: "gemini" | "grok" | "cerebras" | "groq" | "deterministic",
   ) {
     this.primary = primaryProvider ?? null;
     this.fallback = fallbackProvider || new DeterministicInterviewProvider();
@@ -35,7 +35,11 @@ export class FallbackInterviewProvider implements LLMProvider {
       this.primaryName = primaryName;
     } else if (this.primary) {
       const ctorName = this.primary.constructor.name;
-      if (ctorName === "GrokProvider") {
+      if (ctorName === "GroqProvider") {
+        this.primaryName = "groq";
+      } else if (ctorName === "CerebrasProvider") {
+        this.primaryName = "cerebras";
+      } else if (ctorName === "GrokProvider") {
         this.primaryName = "grok";
       } else if (ctorName === "GeminiProvider") {
         this.primaryName = "gemini";
@@ -62,7 +66,7 @@ export class FallbackInterviewProvider implements LLMProvider {
   private categorizeError(err: unknown): FallbackReason {
     if (err instanceof Error) {
       const msg = err.message.toLowerCase();
-      if (msg.includes("missing") || msg.includes("unconfigured")) {
+      if (msg.includes("missing") || msg.includes("unconfigured") || msg.includes("401") || msg.includes("unauthorized")) {
         return "missing_configuration";
       }
       if (msg.includes("time") || msg.includes("timeout") || msg.includes("abort")) {
@@ -98,6 +102,12 @@ export class FallbackInterviewProvider implements LLMProvider {
           fallback: true,
           fallbackReason: reason,
         };
+        if (process.env.NODE_ENV !== "production") {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(
+            `[FallbackInterviewProvider Dev Observability] Primary provider "${this.primaryName}" analyzeAnswer failed (${reason}): ${msg}`,
+          );
+        }
       }
     } else {
       this.lastObservabilityState = {
@@ -133,6 +143,12 @@ export class FallbackInterviewProvider implements LLMProvider {
           fallback: true,
           fallbackReason: reason,
         };
+        if (process.env.NODE_ENV !== "production") {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(
+            `[FallbackInterviewProvider Dev Observability] Primary provider "${this.primaryName}" generateFollowUp failed (${reason}): ${msg}`,
+          );
+        }
       }
     } else {
       this.lastObservabilityState = {
@@ -158,6 +174,12 @@ export class FallbackInterviewProvider implements LLMProvider {
           fallback: true,
           fallbackReason: reason,
         };
+        if (process.env.NODE_ENV !== "production") {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(
+            `[FallbackInterviewProvider Dev Observability] Primary provider "${this.primaryName}" generateFeedback failed (${reason}): ${msg}`,
+          );
+        }
       }
     } else {
       this.lastObservabilityState = {
