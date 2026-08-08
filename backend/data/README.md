@@ -1,12 +1,10 @@
-# backend/data — Static data (PLANNED, not implemented)
+# backend/data — Static data
 
-Static, versioned data the interview engine will read. No database is
-used by design (out of scope for this hackathon).
+Static, versioned data the interview engine reads. No database is used by
+design (out of scope for this hackathon).
 
-| File                   | Contents                                                    |
-| ---------------------- | ----------------------------------------------------------- |
-| `curriculum.json`      | The 31-day enterprise AI engineering curriculum (days, topics, question bank). |
-| `candidate-profiles.json` | Candidate learning journey + profile used to personalize the interview. |
-| `transcripts/`         | Optional: per-session interview transcripts (dev/debug only). |
-
-Empty by design — content arrives in later milestones.
+| File                    | Status | Contents                                                    |
+| ----------------------- | ------ | ----------------------------------------------------------- |
+| `curriculum.json`       | Present | Sample 4-day curriculum with 8 questions for the stub flow. |
+| `candidate-profiles.json` | Present | Sample candidate profiles (reserved for later personalization). |
+| `transcripts/`          | Planned | Optional: per-session interview transcripts (dev/debug only). |

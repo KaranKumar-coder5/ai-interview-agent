@@ -1,0 +1,69 @@
+{
+  "name": "Enterprise AI Engineering Cohort — Curriculum (sample)",
+  "days": [
+    {
+      "day": 1,
+      "title": "LLM Foundations & Prompting",
+      "questions": [
+        {
+          "id": "d1q1",
+          "topic": "LLM internals",
+          "question": "Explain what a large language model is and how next-token prediction shapes its behavior."
+        },
+        {
+          "id": "d1q2",
+          "topic": "Context & limits",
+          "question": "What is context length, and why does it matter when designing enterprise AI applications?"
+        }
+      ]
+    },
+    {
+      "day": 2,
+      "title": "Retrieval-Augmented Generation",
+      "questions": [
+        {
+          "id": "d2q1",
+          "topic": "RAG overview",
+          "question": "What is retrieval-augmented generation, and what problem does it solve?"
+        },
+        {
+          "id": "d2q2",
+          "topic": "Retrieval quality",
+          "question": "How would you evaluate whether retrieved chunks are actually relevant to a query?"
+        }
+      ]
+    },
+    {
+      "day": 3,
+      "title": "Building AI Agents",
+      "questions": [
+        {
+          "id": "d3q1",
+          "topic": "Agent vs chat",
+          "question": "What is an AI agent, and how does tool use differ from a plain chat completion?"
+        },
+        {
+          "id": "d3q2",
+          "topic": "Agent loops",
+          "question": "Describe how you would design a loop that lets an agent call tools safely and recover from errors."
+        }
+      ]
+    },
+    {
+      "day": 4,
+      "title": "Evaluation, Observability & Deployment",
+      "questions": [
+        {
+          "id": "d4q1",
+          "topic": "Evaluation metrics",
+          "question": "Which evaluation metrics would you use for a summarization pipeline, and why?"
+        },
+        {
+          "id": "d4q2",
+          "topic": "Production monitoring",
+          "question": "What observability signals would you capture for a production LLM service?"
+        }
+      ]
+    }
+  ]
+}
