@@ -6,11 +6,15 @@ import {
   markQuestionAsked,
 } from "./context.js";
 import { buildFeedback } from "./feedback.js";
-import { DeterministicInterviewProvider } from "./llm/provider.js";
+import { createProviderFromEnv } from "./llm/factory.js";
 import type { LLMProvider } from "./llm/provider.js";
 import { InterviewPlanner } from "./planner.js";
 import type { Candidate, InterviewResponse } from "./types.js";
 
+export { getLLMConfig } from "./llm/config.js";
+export { createProviderFromEnv } from "./llm/factory.js";
+export { FallbackInterviewProvider } from "./llm/fallback.js";
+export { GeminiProvider } from "./llm/gemini.js";
 export { DeterministicInterviewProvider } from "./llm/provider.js";
 export type { LLMProvider } from "./llm/provider.js";
 
@@ -24,8 +28,8 @@ export class InterviewError extends Error {
   }
 }
 
-// Configurable provider instance (defaulting to DeterministicInterviewProvider)
-let currentProvider: LLMProvider = new DeterministicInterviewProvider();
+// Configurable provider instance (defaulting to environment auto-detection)
+let currentProvider: LLMProvider = createProviderFromEnv();
 
 export function setLLMProvider(provider: LLMProvider): void {
   currentProvider = provider;
