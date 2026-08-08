@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { clearSessions, getSession } from "../src/ai/context.js";
 import {
   continueInterview,
@@ -12,6 +12,11 @@ import type { LLMProvider } from "../src/ai/llm/provider.js";
 
 describe("Interview Intelligence Architecture", () => {
   beforeEach(() => {
+    clearSessions();
+    setLLMProvider(new DeterministicInterviewProvider());
+  });
+
+  afterEach(() => {
     clearSessions();
     setLLMProvider(new DeterministicInterviewProvider());
   });

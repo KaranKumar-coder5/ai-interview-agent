@@ -30,7 +30,10 @@ interviewRouter.get("/:sessionId/progress", (req: Request, res: Response) => {
     res.json(progress);
   } catch (err) {
     if (err instanceof InterviewError) {
-      const status = err.code === "session_not_found" ? 404 : 400;
+      const status =
+        err.code === "session_not_found" || err.code === "candidate_not_found"
+          ? 404
+          : 400;
       res.status(status).json({ error: err.code, message: err.message });
       return;
     }
@@ -58,7 +61,10 @@ interviewRouter.get("/:sessionId/summary", (req: Request, res: Response) => {
     res.json(summary);
   } catch (err) {
     if (err instanceof InterviewError) {
-      const status = err.code === "session_not_found" ? 404 : 400;
+      const status =
+        err.code === "session_not_found" || err.code === "candidate_not_found"
+          ? 404
+          : 400;
       res.status(status).json({ error: err.code, message: err.message });
       return;
     }
@@ -70,11 +76,12 @@ interviewRouter.get("/:sessionId/summary", (req: Request, res: Response) => {
  * POST /api/interview
  *
  * Request shapes:
- *   - Start session:   { sessionId, candidate: { name, role? } }
- *   - Continue session: { sessionId, message }
+ *   - Start session (ID):     { sessionId, candidateId }
+ *   - Start session (Object): { sessionId, candidate: { name, role? } }
+ *   - Continue session:       { sessionId, message }
  *
  * Response:
- *   { sessionId, reply, done, feedback }  (feedback is null until the interview ends)
+ *   { sessionId, reply, done, feedback }
  */
 interviewRouter.post("/", async (req: Request, res: Response) => {
   const body: Record<string, unknown> = req.body ?? {};
@@ -89,6 +96,11 @@ interviewRouter.post("/", async (req: Request, res: Response) => {
   }
 
   try {
+    if (typeof body.candidateId === "string" && body.candidateId.trim() !== "") {
+      res.json(await startInterview(sessionId, body.candidateId.trim()));
+      return;
+    }
+
     if (body.candidate) {
       const candidate = body.candidate as { name?: unknown };
       if (typeof candidate !== "object" || candidate === null) {
@@ -116,11 +128,14 @@ interviewRouter.post("/", async (req: Request, res: Response) => {
 
     res.status(400).json({
       error: "invalid_request",
-      message: "Provide candidate to start a session, or message to continue one.",
+      message: "Provide candidateId or candidate object to start a session, or message to continue one.",
     });
   } catch (err) {
     if (err instanceof InterviewError) {
-      const status = err.code === "session_not_found" ? 404 : 400;
+      const status =
+        err.code === "session_not_found" || err.code === "candidate_not_found"
+          ? 404
+          : 400;
       res.status(status).json({ error: err.code, message: err.message });
       return;
     }

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { clearSessions } from "../src/ai/context.js";
 import {
   continueInterview,
@@ -20,6 +20,11 @@ import type { AnswerAnalysis, Feedback, Question, Session } from "../src/ai/type
 
 describe("Gemini Provider, Validator & Resilient Fallback Tests", () => {
   beforeEach(() => {
+    clearSessions();
+    setLLMProvider(new DeterministicInterviewProvider());
+  });
+
+  afterEach(() => {
     clearSessions();
     setLLMProvider(new DeterministicInterviewProvider());
   });

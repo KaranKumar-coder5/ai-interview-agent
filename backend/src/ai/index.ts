@@ -5,6 +5,7 @@ import {
   getSession,
   markQuestionAsked,
 } from "./context.js";
+import { candidateRecordToCandidate, getCandidateById } from "./data.js";
 import { InterviewError } from "./errors.js";
 import { buildFeedback } from "./feedback.js";
 import { createProviderFromEnv } from "./llm/factory.js";
@@ -12,6 +13,13 @@ import type { LLMProvider } from "./llm/provider.js";
 import { InterviewPlanner } from "./planner.js";
 import type { Candidate, InterviewResponse } from "./types.js";
 
+export {
+  candidateRecordToCandidate,
+  getCandidateById,
+  loadCandidateProfiles,
+  loadCandidates,
+  loadCurriculum,
+} from "./data.js";
 export { InterviewError } from "./errors.js";
 export { getLLMConfig } from "./llm/config.js";
 export { createProviderFromEnv } from "./llm/factory.js";
@@ -37,12 +45,39 @@ export function getLLMProvider(): LLMProvider {
   return currentProvider;
 }
 
-/** First request: create a session and ask the first question. */
+/** First request: create a session and ask the first question. Accepts candidate profile or candidateId string. */
 export async function startInterview(
   sessionId: string,
-  candidate: Candidate,
+  candidateOrId: Candidate | string,
 ): Promise<InterviewResponse> {
-  const session = createSession(sessionId, candidate);
+  let candidateProfile: Candidate;
+
+  if (typeof candidateOrId === "string") {
+    const foundRecord = getCandidateById(candidateOrId.trim());
+    if (!foundRecord) {
+      throw new InterviewError(
+        "candidate_not_found",
+        `No candidate found for candidateId "${candidateOrId}".`,
+      );
+    }
+    candidateProfile = candidateRecordToCandidate(foundRecord);
+  } else if (candidateOrId && typeof candidateOrId === "object") {
+    if (candidateOrId.id) {
+      const foundRecord = getCandidateById(candidateOrId.id);
+      candidateProfile = foundRecord
+        ? candidateRecordToCandidate(foundRecord)
+        : candidateOrId;
+    } else {
+      candidateProfile = candidateOrId;
+    }
+  } else {
+    throw new InterviewError(
+      "candidate_not_found",
+      "Valid candidate object or candidateId is required.",
+    );
+  }
+
+  const session = createSession(sessionId, candidateProfile);
   const planner = new InterviewPlanner(currentProvider);
 
   const plan = await planner.planNextTurn(session);

@@ -1,7 +1,65 @@
+/** Authoritative Cohort Curriculum types (from backend/data/curriculum.json) */
+export interface CohortModule {
+  n: number;
+  title: string;
+  days: [number, number];
+}
+
+export interface CohortDay {
+  day: number;
+  title: string;
+  type: string;
+  tools: string[];
+  objectives: string[];
+}
+
+export interface CohortCurriculum {
+  cohort: string;
+  modules: CohortModule[];
+  days: CohortDay[];
+}
+
+/** Authoritative Candidate dataset types (from backend/data/candidates.json) */
+export interface CandidateMember {
+  id: string;
+  name: string;
+  jobRole: string;
+  yearsExperience: number;
+  education: string;
+  status: string;
+}
+
+export interface CandidateMission {
+  day: number;
+  title: string;
+  passed?: boolean;
+  attempts?: number;
+  skipped?: boolean;
+}
+
+export interface CandidateSignals {
+  commitDays: number;
+  missionsCompleted: number;
+  missionsFirstTry: number;
+}
+
+export interface CandidateRecord {
+  member: CandidateMember;
+  missions: CandidateMission[];
+  signals: CandidateSignals;
+}
+
+export interface CandidatesData {
+  candidates: CandidateRecord[];
+}
+
+/** Legacy / Interview Candidate interface (for active session & evaluation engine) */
 export interface Candidate {
   id?: string;
   name: string;
   role?: string;
+  cohortDay?: number;
+  notes?: string;
 }
 
 export interface CurriculumQuestion {

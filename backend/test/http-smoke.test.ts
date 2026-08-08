@@ -29,7 +29,56 @@ describe("HTTP API Smoke Test", () => {
     assert.equal(data.service, "ai-interview-agent");
   });
 
-  it("POST /api/interview starts a session with candidate", async () => {
+  it("GET /api/candidates/:candidateId returns 200 for valid candidate ID", async () => {
+    const res = await fetch(`${baseUrl}/api/candidates/priya-dev`);
+    assert.equal(res.status, 200);
+    const data = (await res.json()) as any;
+    assert.equal(data.id, "priya-dev");
+    assert.equal(data.name, "Priya Sharma");
+    assert.equal(data.role, "AI Engineer");
+    assert.equal(data.cohortDay, 12);
+  });
+
+  it("GET /api/candidates/:candidateId returns 404 for unknown candidate ID", async () => {
+    const res = await fetch(`${baseUrl}/api/candidates/unknown-cand-id`);
+    assert.equal(res.status, 404);
+    const data = (await res.json()) as any;
+    assert.equal(data.error, "candidate_not_found");
+  });
+
+  it("POST /api/interview starts a session with candidateId string", async () => {
+    const res = await fetch(`${baseUrl}/api/interview`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: "cid-session-1",
+        candidateId: "priya-dev",
+      }),
+    });
+
+    assert.equal(res.status, 200);
+    const data = (await res.json()) as any;
+    assert.equal(data.sessionId, "cid-session-1");
+    assert.equal(data.done, false);
+    assert.match(data.reply, /Hi Priya Sharma/);
+  });
+
+  it("POST /api/interview returns 404 when starting with unknown candidateId", async () => {
+    const res = await fetch(`${baseUrl}/api/interview`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: "invalid-cid-session",
+        candidateId: "non-existent-candidate",
+      }),
+    });
+
+    assert.equal(res.status, 404);
+    const data = (await res.json()) as any;
+    assert.equal(data.error, "candidate_not_found");
+  });
+
+  it("POST /api/interview starts a session with candidate object (backward compatibility)", async () => {
     const res = await fetch(`${baseUrl}/api/interview`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

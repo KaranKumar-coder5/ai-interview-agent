@@ -3,7 +3,9 @@ import { beforeEach, describe, it } from "node:test";
 import { clearSessions } from "../src/ai/context.js";
 import {
   continueInterview,
+  DeterministicInterviewProvider,
   InterviewError,
+  setLLMProvider,
   startInterview,
 } from "../src/ai/index.js";
 import { totalQuestions } from "../src/ai/questions.js";
@@ -11,6 +13,7 @@ import { totalQuestions } from "../src/ai/questions.js";
 describe("interview flow", () => {
   beforeEach(() => {
     clearSessions();
+    setLLMProvider(new DeterministicInterviewProvider());
   });
 
   it("starts a session and asks the first question", async () => {
