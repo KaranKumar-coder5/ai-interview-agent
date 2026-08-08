@@ -27,17 +27,48 @@ export interface Question extends CurriculumQuestion {
   dayTitle: string;
 }
 
+export interface AnswerAnalysis {
+  score: number; // 0 to 10 scale
+  depth: "superficial" | "adequate" | "deep";
+  keywordsFound: string[];
+  gapsIdentified: string[];
+  feedbackSnippet: string;
+}
+
+export interface InterviewTurn {
+  questionId: string;
+  questionText: string;
+  day: number;
+  dayTitle: string;
+  topic: string;
+  isFollowUp: boolean;
+  candidateAnswer?: string;
+  analysis?: AnswerAnalysis;
+}
+
 export interface Session {
   sessionId: string;
   candidate: Candidate;
+  turns: InterviewTurn[];
   /** Question ids asked so far, in order. */
   askedQuestions: string[];
   /** Candidate answers received so far, in order. */
   answers: string[];
-  /** Index of the question that will be asked next. */
+  currentDayIndex: number;
+  currentQuestionInDayIndex: number;
+  followUpsOnCurrentQuestion: number;
+  /** Index of the question that will be asked next (legacy compatibility). */
   nextQuestionIndex: number;
+  topicScores: Record<string, number[]>;
   startedAt: number;
   done: boolean;
+}
+
+export interface TopicFeedback {
+  day: number;
+  title: string;
+  score: number; // 0-100 percentage
+  status: "strong" | "developing" | "needs_work";
 }
 
 export interface Feedback {
@@ -45,6 +76,10 @@ export interface Feedback {
   answered: number;
   total: number;
   summary: string;
+  overallScore: number;
+  strengths: string[];
+  areasForImprovement: string[];
+  topicBreakdown: TopicFeedback[];
 }
 
 export interface InterviewResponse {
@@ -53,3 +88,4 @@ export interface InterviewResponse {
   done: boolean;
   feedback: Feedback | null;
 }
+

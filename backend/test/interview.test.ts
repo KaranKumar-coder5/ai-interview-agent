@@ -13,8 +13,8 @@ describe("interview flow", () => {
     clearSessions();
   });
 
-  it("starts a session and asks the first question", () => {
-    const res = startInterview("session-1", { name: "Priya", role: "AI Engineer" });
+  it("starts a session and asks the first question", async () => {
+    const res = await startInterview("session-1", { name: "Priya", role: "AI Engineer" });
 
     assert.equal(res.sessionId, "session-1");
     assert.equal(res.done, false);
@@ -23,24 +23,28 @@ describe("interview flow", () => {
     assert.match(res.reply, /Day 1/);
   });
 
-  it("advances through every question and ends with feedback", () => {
-    startInterview("session-1", { name: "Priya" });
+  it("advances through every question and ends with feedback", async () => {
+    await startInterview("session-1", { name: "Priya" });
 
     const total = totalQuestions();
     assert.equal(total, 8);
 
     let res = { done: false } as { done: boolean; feedback: unknown };
+    // Provide detailed answers to avoid follow-up loops in standard test run
     for (let i = 0; i < total; i++) {
-      res = continueInterview("session-1", `answer number ${i + 1}`);
+      res = await continueInterview(
+        "session-1",
+        `Comprehensive answer ${i + 1} detailing transformer prediction, window context, retrieval vector search, and observability metrics.`,
+      );
     }
 
     assert.equal(res.done, true);
     assert.notEqual(res.feedback, null);
   });
 
-  it("fails with session_not_found for an unknown session", () => {
-    assert.throws(
-      () => continueInterview("missing-session", "hello"),
+  it("fails with session_not_found for an unknown session", async () => {
+    await assert.rejects(
+      async () => await continueInterview("missing-session", "hello"),
       (err: unknown) =>
         err instanceof InterviewError && err.code === "session_not_found",
     );

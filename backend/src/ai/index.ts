@@ -1,3 +1,4 @@
+import { AnswerAnalyzer } from "./analyzer.js";
 import {
   appendAnswer,
   createSession,
@@ -5,8 +6,13 @@ import {
   markQuestionAsked,
 } from "./context.js";
 import { buildFeedback } from "./feedback.js";
-import { getQuestionAt } from "./questions.js";
+import { DeterministicInterviewProvider } from "./llm/provider.js";
+import type { LLMProvider } from "./llm/provider.js";
+import { InterviewPlanner } from "./planner.js";
 import type { Candidate, InterviewResponse } from "./types.js";
+
+export { DeterministicInterviewProvider } from "./llm/provider.js";
+export type { LLMProvider } from "./llm/provider.js";
 
 export class InterviewError extends Error {
   constructor(
@@ -18,38 +24,54 @@ export class InterviewError extends Error {
   }
 }
 
+// Configurable provider instance (defaulting to DeterministicInterviewProvider)
+let currentProvider: LLMProvider = new DeterministicInterviewProvider();
+
+export function setLLMProvider(provider: LLMProvider): void {
+  currentProvider = provider;
+}
+
+export function getLLMProvider(): LLMProvider {
+  return currentProvider;
+}
+
 /** First request: create a session and ask the first question. */
-export function startInterview(
+export async function startInterview(
   sessionId: string,
   candidate: Candidate,
-): InterviewResponse {
+): Promise<InterviewResponse> {
   const session = createSession(sessionId, candidate);
-  const first = getQuestionAt(0);
+  const planner = new InterviewPlanner(currentProvider);
 
-  if (!first) {
+  const plan = await planner.planNextTurn(session);
+
+  if (plan.done || !plan.turn) {
     session.done = true;
+    const feedback = buildFeedback(session, currentProvider);
     return {
       sessionId,
       reply: "No questions are available for this curriculum yet.",
       done: true,
-      feedback: buildFeedback(session),
+      feedback,
     };
   }
 
-  markQuestionAsked(sessionId, first.id);
+  session.turns.push(plan.turn);
+  markQuestionAsked(sessionId, plan.turn.questionId);
+
   return {
     sessionId,
-    reply: `Hi ${candidate.name}! Welcome to your technical interview. Let's begin with Day ${first.day} — ${first.dayTitle}. ${first.question}`,
+    reply: plan.reply,
     done: false,
     feedback: null,
   };
 }
 
-/** Subsequent requests: record the answer and advance to the next question. */
-export function continueInterview(
+/** Subsequent requests: analyze answer, handle follow-ups, and advance curriculum. */
+export async function continueInterview(
   sessionId: string,
   message: string,
-): InterviewResponse {
+): Promise<InterviewResponse> {
   const session = getSession(sessionId);
   if (!session) {
     throw new InterviewError(
@@ -66,13 +88,38 @@ export function continueInterview(
 
   appendAnswer(sessionId, message);
 
-  const nextIndex = session.nextQuestionIndex + 1;
-  const next = getQuestionAt(nextIndex);
+  // Get the last active turn that was waiting for an answer
+  const currentTurn = session.turns[session.turns.length - 1];
+  if (currentTurn) {
+    currentTurn.candidateAnswer = message;
 
-  if (!next) {
+    // Analyze the candidate's answer
+    const analyzer = new AnswerAnalyzer(currentProvider);
+    const questionObj = {
+      id: currentTurn.questionId,
+      topic: currentTurn.topic,
+      question: currentTurn.questionText,
+      day: currentTurn.day,
+      dayTitle: currentTurn.dayTitle,
+    };
+
+    const analysis = await analyzer.analyze(questionObj, message, session);
+    currentTurn.analysis = analysis;
+
+    if (!session.topicScores[currentTurn.topic]) {
+      session.topicScores[currentTurn.topic] = [];
+    }
+    session.topicScores[currentTurn.topic].push(analysis.score);
+  }
+
+  const planner = new InterviewPlanner(currentProvider);
+  const lastAnalysis = currentTurn?.analysis;
+
+  const plan = await planner.planNextTurn(session, lastAnalysis);
+
+  if (plan.done) {
     session.done = true;
-    session.nextQuestionIndex = nextIndex;
-    const feedback = buildFeedback(session);
+    const feedback = buildFeedback(session, currentProvider);
     return {
       sessionId,
       reply: `Interview complete! ${feedback.summary} Thanks for your time, ${session.candidate.name}.`,
@@ -81,11 +128,14 @@ export function continueInterview(
     };
   }
 
-  session.nextQuestionIndex = nextIndex;
-  markQuestionAsked(sessionId, next.id);
+  if (plan.turn) {
+    session.turns.push(plan.turn);
+    markQuestionAsked(sessionId, plan.turn.questionId);
+  }
+
   return {
     sessionId,
-    reply: `Day ${next.day} — ${next.dayTitle}: ${next.question}`,
+    reply: plan.reply,
     done: false,
     feedback: null,
   };

@@ -10,9 +10,14 @@ export function createSession(sessionId: string, candidate: Candidate): Session 
   const session: Session = {
     sessionId,
     candidate,
+    turns: [],
     askedQuestions: [],
     answers: [],
+    currentDayIndex: 0,
+    currentQuestionInDayIndex: 0,
+    followUpsOnCurrentQuestion: 0,
     nextQuestionIndex: 0,
+    topicScores: {},
     startedAt: Date.now(),
     done: false,
   };

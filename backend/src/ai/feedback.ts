@@ -1,10 +1,12 @@
+import { DeterministicInterviewProvider } from "./llm/provider.js";
+import type { LLMProvider } from "./llm/provider.js";
 import type { Feedback, Session } from "./types.js";
 
-export function buildFeedback(session: Session): Feedback {
-  return {
-    candidateName: session.candidate.name,
-    answered: session.answers.length,
-    total: session.askedQuestions.length,
-    summary: `${session.candidate.name} answered ${session.answers.length} of ${session.askedQuestions.length} questions across ${session.askedQuestions.length} turns.`,
-  };
+const defaultProvider: LLMProvider = new DeterministicInterviewProvider();
+
+export function buildFeedback(
+  session: Session,
+  provider: LLMProvider = defaultProvider,
+): Feedback {
+  return provider.generateFeedback(session) as Feedback;
 }

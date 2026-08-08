@@ -14,7 +14,7 @@ export const interviewRouter = Router();
  * Response:
  *   { sessionId, reply, done, feedback }  (feedback is null until the interview ends)
  */
-interviewRouter.post("/", (req: Request, res: Response) => {
+interviewRouter.post("/", async (req: Request, res: Response) => {
   const body: Record<string, unknown> = req.body ?? {};
 
   const sessionId = typeof body.sessionId === "string" ? body.sessionId.trim() : "";
@@ -43,12 +43,12 @@ interviewRouter.post("/", (req: Request, res: Response) => {
         });
         return;
       }
-      res.json(startInterview(sessionId, candidate as never));
+      res.json(await startInterview(sessionId, candidate as never));
       return;
     }
 
     if (typeof body.message === "string" && body.message.trim() !== "") {
-      res.json(continueInterview(sessionId, body.message.trim()));
+      res.json(await continueInterview(sessionId, body.message.trim()));
       return;
     }
 
