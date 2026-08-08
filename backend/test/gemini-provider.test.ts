@@ -154,9 +154,9 @@ describe("Gemini Provider, Validator & Resilient Fallback Tests", () => {
     const res = await continueInterview("fb-1", "brief answer");
 
     assert.equal(res.done, false);
-    // Verified fallback executed without throwing runtime crash
+    // Verified fallback executed without throwing runtime crash and preserving attempted provider identity
     const state = fallbackProvider.getObservabilityState();
-    assert.equal(state.provider, "deterministic");
+    assert.equal(state.provider, "gemini");
     assert.equal(state.fallback, true);
     assert.equal(state.fallbackReason, "provider_error");
   });

@@ -12,7 +12,7 @@ export type FallbackReason =
   | "provider_error";
 
 export interface FallbackObservabilityState {
-  provider: "gemini" | "deterministic";
+  provider: "gemini" | "grok" | "deterministic";
   fallback: boolean;
   fallbackReason?: FallbackReason;
 }
@@ -20,17 +20,39 @@ export interface FallbackObservabilityState {
 export class FallbackInterviewProvider implements LLMProvider {
   private primary: LLMProvider | null;
   private fallback: LLMProvider;
-  private lastObservabilityState: FallbackObservabilityState = {
-    provider: "deterministic",
-    fallback: false,
-  };
+  private primaryName: "gemini" | "grok" | "deterministic";
+  private lastObservabilityState: FallbackObservabilityState;
 
   constructor(
     primaryProvider?: LLMProvider | null,
     fallbackProvider?: LLMProvider,
+    primaryName?: "gemini" | "grok" | "deterministic",
   ) {
     this.primary = primaryProvider ?? null;
     this.fallback = fallbackProvider || new DeterministicInterviewProvider();
+
+    if (primaryName) {
+      this.primaryName = primaryName;
+    } else if (this.primary) {
+      const ctorName = this.primary.constructor.name;
+      if (ctorName === "GrokProvider") {
+        this.primaryName = "grok";
+      } else if (ctorName === "GeminiProvider") {
+        this.primaryName = "gemini";
+      } else if (ctorName === "DeterministicInterviewProvider") {
+        this.primaryName = "deterministic";
+      } else {
+        this.primaryName = "gemini";
+      }
+    } else {
+      this.primaryName = "deterministic";
+    }
+
+    this.lastObservabilityState = {
+      provider: this.primaryName,
+      fallback: !this.primary,
+      fallbackReason: !this.primary ? "missing_configuration" : undefined,
+    };
   }
 
   getObservabilityState(): FallbackObservabilityState {
@@ -67,19 +89,19 @@ export class FallbackInterviewProvider implements LLMProvider {
     if (this.primary) {
       try {
         const result = await this.primary.analyzeAnswer(question, candidateAnswer, session);
-        this.lastObservabilityState = { provider: "gemini", fallback: false };
+        this.lastObservabilityState = { provider: this.primaryName, fallback: false };
         return result;
       } catch (err: unknown) {
         const reason = this.categorizeError(err);
         this.lastObservabilityState = {
-          provider: "deterministic",
+          provider: this.primaryName,
           fallback: true,
           fallbackReason: reason,
         };
       }
     } else {
       this.lastObservabilityState = {
-        provider: "deterministic",
+        provider: this.primaryName,
         fallback: true,
         fallbackReason: "missing_configuration",
       };
@@ -102,19 +124,19 @@ export class FallbackInterviewProvider implements LLMProvider {
           analysis,
           session,
         );
-        this.lastObservabilityState = { provider: "gemini", fallback: false };
+        this.lastObservabilityState = { provider: this.primaryName, fallback: false };
         return result;
       } catch (err: unknown) {
         const reason = this.categorizeError(err);
         this.lastObservabilityState = {
-          provider: "deterministic",
+          provider: this.primaryName,
           fallback: true,
           fallbackReason: reason,
         };
       }
     } else {
       this.lastObservabilityState = {
-        provider: "deterministic",
+        provider: this.primaryName,
         fallback: true,
         fallbackReason: "missing_configuration",
       };
@@ -127,19 +149,19 @@ export class FallbackInterviewProvider implements LLMProvider {
     if (this.primary) {
       try {
         const result = await this.primary.generateFeedback(session);
-        this.lastObservabilityState = { provider: "gemini", fallback: false };
+        this.lastObservabilityState = { provider: this.primaryName, fallback: false };
         return result;
       } catch (err: unknown) {
         const reason = this.categorizeError(err);
         this.lastObservabilityState = {
-          provider: "deterministic",
+          provider: this.primaryName,
           fallback: true,
           fallbackReason: reason,
         };
       }
     } else {
       this.lastObservabilityState = {
-        provider: "deterministic",
+        provider: this.primaryName,
         fallback: true,
         fallbackReason: "missing_configuration",
       };
