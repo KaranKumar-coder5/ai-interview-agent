@@ -1,13 +1,14 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import { candidateRecordToCandidate, getCandidateById } from "../ai/index.js";
+import { getCandidateById } from "../ai/index.js";
 
 export const candidateRouter = Router();
 
 /**
  * GET /api/candidates/:candidateId
  *
- * Returns candidate profile when candidateId is valid, or HTTP 404 when not found.
+ * Returns authoritative candidate data ({ member, missions, signals }) when candidateId is valid,
+ * or HTTP 404 when candidate ID is not found.
  */
 candidateRouter.get("/:candidateId", (req: Request, res: Response) => {
   const candidateId = req.params.candidateId?.trim();
@@ -28,13 +29,5 @@ candidateRouter.get("/:candidateId", (req: Request, res: Response) => {
     return;
   }
 
-  const candidate = candidateRecordToCandidate(candidateRecord);
-
-  res.json({
-    id: candidate.id,
-    name: candidate.name,
-    role: candidate.role,
-    cohortDay: candidate.cohortDay,
-    notes: candidate.notes,
-  });
+  res.json(candidateRecord);
 });

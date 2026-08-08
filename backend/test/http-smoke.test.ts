@@ -3,7 +3,7 @@ import type { Server } from "node:http";
 import { after, before, describe, it } from "node:test";
 import { app } from "../src/app.js";
 
-describe("HTTP API Smoke Test", () => {
+describe("HTTP API Smoke Test & Candidate ID API Tests", () => {
   let server: Server;
   let baseUrl: string;
 
@@ -29,30 +29,74 @@ describe("HTTP API Smoke Test", () => {
     assert.equal(data.service, "ai-interview-agent");
   });
 
-  it("GET /api/candidates/:candidateId returns 200 for valid candidate ID", async () => {
-    const res = await fetch(`${baseUrl}/api/candidates/priya-dev`);
+  it("GET /api/candidates/CAND-001 returns 200 with authoritative candidate record", async () => {
+    const res = await fetch(`${baseUrl}/api/candidates/CAND-001`);
     assert.equal(res.status, 200);
     const data = (await res.json()) as any;
-    assert.equal(data.id, "priya-dev");
-    assert.equal(data.name, "Priya Sharma");
-    assert.equal(data.role, "AI Engineer");
-    assert.equal(data.cohortDay, 12);
+
+    assert.ok(data.member);
+    assert.equal(data.member.id, "CAND-001");
+    assert.equal(data.member.name, "Sarah Johnson");
+    assert.equal(data.member.jobRole, "Senior Data Engineer");
+    assert.equal(data.member.yearsExperience, 9);
+    assert.equal(data.member.education, "MS Computer Science");
+    assert.equal(data.member.status, "COMPLETED");
+
+    assert.ok(Array.isArray(data.missions));
+    assert.ok(data.missions.length > 0);
+    assert.ok(data.signals);
+    assert.equal(data.signals.commitDays, 28);
   });
 
-  it("GET /api/candidates/:candidateId returns 404 for unknown candidate ID", async () => {
-    const res = await fetch(`${baseUrl}/api/candidates/unknown-cand-id`);
+  it("GET /api/candidates/CAND-020 returns 200 with upper-range candidate record", async () => {
+    const res = await fetch(`${baseUrl}/api/candidates/CAND-020`);
+    assert.equal(res.status, 200);
+    const data = (await res.json()) as any;
+
+    assert.ok(data.member);
+    assert.equal(data.member.id, "CAND-020");
+    assert.equal(data.member.name, "Priyanka Sharma");
+    assert.equal(data.member.jobRole, "Software Engineer");
+    assert.ok(Array.isArray(data.missions));
+    assert.ok(data.signals);
+  });
+
+  it("GET /api/candidates/CAND-999 returns 404 candidate_not_found", async () => {
+    const res = await fetch(`${baseUrl}/api/candidates/CAND-999`);
     assert.equal(res.status, 404);
     const data = (await res.json()) as any;
+
     assert.equal(data.error, "candidate_not_found");
+    assert.equal(data.message, 'No candidate found for candidateId "CAND-999".');
   });
 
-  it("POST /api/interview starts a session with candidateId string", async () => {
+  it("Enforces candidate isolation (CAND-001 does not return CAND-002 data)", async () => {
+    const res1 = await fetch(`${baseUrl}/api/candidates/CAND-001`);
+    const data1 = (await res1.json()) as any;
+
+    const res2 = await fetch(`${baseUrl}/api/candidates/CAND-002`);
+    const data2 = (await res2.json()) as any;
+
+    assert.notEqual(data1.member.id, data2.member.id);
+    assert.notEqual(data1.member.name, data2.member.name);
+    assert.equal(data1.member.id, "CAND-001");
+    assert.equal(data2.member.id, "CAND-002");
+  });
+
+  it("Handles whitespace and case insensitivity (cand-001 with spaces)", async () => {
+    const res = await fetch(`${baseUrl}/api/candidates/cand-001%20`);
+    assert.equal(res.status, 200);
+    const data = (await res.json()) as any;
+    assert.equal(data.member.id, "CAND-001");
+  });
+
+  it("POST /api/interview starts a session with candidateId string (CAND-001)", async () => {
     const res = await fetch(`${baseUrl}/api/interview`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         sessionId: "cid-session-1",
-        candidateId: "priya-dev",
+        candidateId: "CAND-001",
       }),
     });
 
@@ -60,7 +104,7 @@ describe("HTTP API Smoke Test", () => {
     const data = (await res.json()) as any;
     assert.equal(data.sessionId, "cid-session-1");
     assert.equal(data.done, false);
-    assert.match(data.reply, /Hi Priya Sharma/);
+    assert.match(data.reply, /Hi Sarah Johnson/);
   });
 
   it("POST /api/interview returns 404 when starting with unknown candidateId", async () => {
