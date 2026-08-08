@@ -1,11 +1,11 @@
-import type { CandidateData } from "../../data/candidates.js";
+import type { CandidateRecord } from "../../api/types.js";
 import type { CurriculumModule } from "../../data/curriculum.js";
 import { Badge } from "../common/Badge.js";
 import { Card } from "../common/Card.js";
 
 interface ModuleCardProps {
   module: CurriculumModule;
-  candidate: CandidateData;
+  candidate: CandidateRecord;
 }
 
 export function ModuleCard({ module }: ModuleCardProps) {
@@ -37,7 +37,7 @@ export function ModuleCard({ module }: ModuleCardProps) {
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span className="mono" style={{ fontSize: "0.75rem", color: "var(--accent-primary)", fontWeight: 700 }}>
-                DAY 0{d.day}
+                DAY {d.day < 10 ? `0${d.day}` : d.day}
               </span>
               <Badge variant="success">Authoritative Dataset</Badge>
             </div>

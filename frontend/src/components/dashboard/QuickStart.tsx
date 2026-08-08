@@ -1,8 +1,8 @@
-import type { CandidateData } from "../../data/candidates.js";
+import type { CandidateRecord } from "../../api/types.js";
 import { Card } from "../common/Card.js";
 
 interface QuickStartProps {
-  candidate: CandidateData;
+  candidate: CandidateRecord;
   onStartInterview: () => void;
   isStarting: boolean;
   hasActiveSession: boolean;
@@ -16,6 +16,8 @@ export function QuickStart({
   hasActiveSession,
   onResumeInterview,
 }: QuickStartProps) {
+  const candidateName = candidate.member.name;
+
   return (
     <Card style={{ background: "linear-gradient(135deg, var(--bg-surface) 0%, #111a2f 100%)", border: "1px solid var(--border-medium)" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
@@ -27,7 +29,7 @@ export function QuickStart({
             Start Technical Interview
           </h2>
           <p style={{ margin: "0.35rem 0 0 0", color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-            Launch a realistic multi-turn technical evaluation tailored to {candidate.name}'s learning journey across enterprise AI fundamentals.
+            Launch a realistic multi-turn technical evaluation tailored to {candidateName}'s learning journey across enterprise AI fundamentals.
           </p>
         </div>
 
@@ -37,7 +39,7 @@ export function QuickStart({
             onClick={onStartInterview}
             disabled={isStarting}
           >
-            {isStarting ? "Initializing Session..." : `▶ Start Interview (${candidate.name})`}
+            {isStarting ? "Initializing Session..." : `▶ Start Interview (${candidateName})`}
           </button>
 
           {hasActiveSession && (

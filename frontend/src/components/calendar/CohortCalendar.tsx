@@ -1,16 +1,19 @@
-import type { CandidateData } from "../../data/candidates.js";
+import type { CandidateRecord } from "../../api/types.js";
 import { COHORT_CURRICULUM } from "../../data/curriculum.js";
 import { Badge } from "../common/Badge.js";
 import { Card } from "../common/Card.js";
 import { ModuleCard } from "./ModuleCard.js";
 
 interface CohortCalendarProps {
-  candidate: CandidateData;
+  candidate: CandidateRecord;
 }
 
 export function CohortCalendar({ candidate }: CohortCalendarProps) {
   const totalDays = 31;
-  const currentDay = candidate.cohortDay;
+  const maxCompletedMissionDay =
+    candidate.missions && candidate.missions.length > 0
+      ? Math.max(...candidate.missions.map((m) => m.day))
+      : 1;
 
   return (
     <div>
@@ -21,24 +24,24 @@ export function CohortCalendar({ candidate }: CohortCalendarProps) {
               ENTERPRISE AI COHORT ROADMAP
             </span>
             <h2 className="h2" style={{ marginTop: "0.25rem" }}>
-              Interview Curriculum Roadmap
+              Cohort Curriculum Roadmap
             </h2>
             <p style={{ margin: "0.35rem 0 0 0", color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-              Authoritative curriculum data loaded from <code>backend/data/curriculum.json</code> (Days 1–4 evaluation topics).
+              Authoritative curriculum dataset loaded from <code>backend/data/curriculum.json</code> (31 cohort days across 8 modules).
             </p>
           </div>
 
           <div style={{ display: "flex", gap: "1.25rem", background: "var(--bg-app)", padding: "0.75rem 1.25rem", borderRadius: "var(--radius-md)", border: "1px solid var(--border-subtle)" }}>
             <div>
-              <span className="caption">Candidate Position</span>
+              <span className="caption">Candidate Journey</span>
               <div className="mono" style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--accent-primary)" }}>
-                Day {currentDay} / {totalDays}
+                Day {maxCompletedMissionDay} / {totalDays}
               </div>
             </div>
             <div style={{ borderLeft: "1px solid var(--border-subtle)", paddingLeft: "1.25rem" }}>
               <span className="caption">Authoritative Days</span>
               <div className="mono" style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--success)" }}>
-                4 Days (8 Questions)
+                31 Cohort Days
               </div>
             </div>
           </div>
@@ -54,9 +57,9 @@ export function CohortCalendar({ candidate }: CohortCalendarProps) {
       <Card style={{ marginTop: "1rem", borderStyle: "dashed" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
           <div>
-            <Badge variant="neutral">Days 5–31 Dataset Notice</Badge>
+            <Badge variant="neutral">Authoritative Roadmap Notice</Badge>
             <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: "0.4rem 0 0 0" }}>
-              Days 5–31 curriculum data is not provided in the current repository dataset (<code>backend/data/curriculum.json</code> contains Days 1–4). The application strictly avoids fabricating missing dataset entries.
+              The 31-day cohort roadmap represents the candidate's complete 8-module AI engineering curriculum. The live interview engine evaluates candidate proficiency across 4 core technical evaluation domains (8 questions).
             </p>
           </div>
         </div>

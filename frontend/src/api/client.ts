@@ -1,6 +1,6 @@
 import type {
   CandidatePayload,
-  CandidateProfile,
+  CandidateRecord,
   HealthResponse,
   InterviewResponse,
   SessionProgress,
@@ -50,12 +50,26 @@ export async function getHealth(): Promise<HealthResponse> {
   }
 }
 
-export async function getCandidate(candidateId: string): Promise<CandidateProfile> {
+export async function getCandidate(candidateId: string): Promise<CandidateRecord> {
+  const trimmed = candidateId.trim();
+  if (!trimmed) {
+    throw new ApiClientError(400, "invalid_request", "Candidate ID cannot be empty.");
+  }
+
   try {
-    const res = await fetch(`/api/candidates/${encodeURIComponent(candidateId.trim())}`);
-    return await handleResponse<CandidateProfile>(res);
+    const res = await fetch(`/api/candidates/${encodeURIComponent(trimmed)}`);
+    return await handleResponse<CandidateRecord>(res);
   } catch (err) {
-    if (err instanceof ApiClientError) throw err;
+    if (err instanceof ApiClientError) {
+      if (err.status === 404 || err.code === "candidate_not_found") {
+        throw new ApiClientError(
+          404,
+          "candidate_not_found",
+          `No candidate found for candidateId "${trimmed}". Please check your ID and try again.`,
+        );
+      }
+      throw err;
+    }
     throw new ApiClientError(0, "network_error", "Failed to lookup candidate profile.");
   }
 }

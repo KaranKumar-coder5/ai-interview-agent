@@ -1,10 +1,33 @@
-export interface CandidateProfile {
+export interface CandidateMember {
   id: string;
   name: string;
-  role: string;
-  cohortDay: number;
-  notes: string;
+  jobRole: string;
+  yearsExperience: number;
+  education: string;
+  status: string;
 }
+
+export interface CandidateMission {
+  day: number;
+  title: string;
+  passed?: boolean;
+  attempts?: number;
+  skipped?: boolean;
+}
+
+export interface CandidateSignals {
+  commitDays: number;
+  missionsCompleted: number;
+  missionsFirstTry: number;
+}
+
+export interface CandidateRecord {
+  member: CandidateMember;
+  missions: CandidateMission[];
+  signals: CandidateSignals;
+}
+
+export type CandidateProfile = CandidateRecord;
 
 export interface CandidatePayload {
   name: string;
@@ -76,6 +99,7 @@ export interface CurrentPosition {
 
 export interface SessionProgress {
   sessionId: string;
+  candidateId?: string;
   candidate: {
     name: string;
     role?: string;
@@ -94,6 +118,7 @@ export interface SessionProgress {
 
 export interface SessionSummary {
   sessionId: string;
+  candidateId?: string;
   candidate: {
     name: string;
     role?: string;

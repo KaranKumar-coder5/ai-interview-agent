@@ -8,7 +8,7 @@ import {
   startInterview,
 } from "../api/client.js";
 import type {
-  CandidateProfile,
+  CandidateRecord,
   InterviewTurn,
   SessionProgress,
   SessionSummary,
@@ -17,7 +17,7 @@ import type { ActiveTab } from "../components/common/NavigationTabs.js";
 
 export function useInterview() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
-  const [currentCandidate, setCurrentCandidate] = useState<CandidateProfile | null>(null);
+  const [currentCandidate, setCurrentCandidate] = useState<CandidateRecord | null>(null);
   const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -62,16 +62,19 @@ export function useInterview() {
   }, []);
 
   const handleLogin = async (candidateId: string) => {
+    const trimmed = candidateId.trim();
+    if (!trimmed) return;
+
     setAuthError(null);
     setIsAuthChecking(true);
 
     try {
-      const prof = await getCandidate(candidateId);
+      const prof = await getCandidate(trimmed);
       setCurrentCandidate(prof);
-      sessionStorage.setItem("candidateId", prof.id);
+      sessionStorage.setItem("candidateId", prof.member.id);
       setActiveTab("dashboard");
     } catch (err: any) {
-      setAuthError("Candidate ID not found. Please check your ID and try again.");
+      setAuthError(err.message || "Candidate ID not found. Please check your ID and try again.");
     } finally {
       setIsAuthChecking(false);
     }
@@ -112,7 +115,7 @@ export function useInterview() {
     const newSessionId = `session-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
     try {
-      const res = await startInterview(newSessionId, currentCandidate.id);
+      const res = await startInterview(newSessionId, currentCandidate.member.id);
 
       setSessionId(newSessionId);
       setIsCompleted(false);

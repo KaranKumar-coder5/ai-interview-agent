@@ -1,24 +1,6 @@
-export interface CandidateData {
-  id: string;
-  name: string;
-  role: string;
-  cohortDay: number;
-  notes: string;
-}
+import type { CandidateRecord } from "../api/types.js";
 
-export const CANDIDATES: CandidateData[] = [
-  {
-    id: "priya-dev",
-    name: "Priya Sharma",
-    role: "AI Engineer",
-    cohortDay: 12,
-    notes: "Strong Python, building her first RAG application.",
-  },
-  {
-    id: "marcus-ml",
-    name: "Marcus Lee",
-    role: "ML Engineer",
-    cohortDay: 20,
-    notes: "Comfortable with fine-tuning, new to agent tooling.",
-  },
-];
+export type CandidateData = CandidateRecord;
+
+/** Deprecated: candidates are loaded dynamically via GET /api/candidates/:candidateId */
+export const CANDIDATES: CandidateRecord[] = [];

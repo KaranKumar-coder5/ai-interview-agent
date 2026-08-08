@@ -78,7 +78,7 @@ export function App() {
     <div className="app-container">
       <Header
         backendOnline={backendOnline}
-        candidateName={currentCandidate.name}
+        candidateName={currentCandidate.member.name}
         sessionId={sessionId}
         onLogout={handleLogout}
       />

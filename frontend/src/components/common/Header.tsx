@@ -70,10 +70,10 @@ export function Header({
                 <button
                   className="btn btn-outline"
                   onClick={onLogout}
-                  style={{ padding: "0.2rem 0.6rem", fontSize: "0.75rem" }}
-                  title="Sign out or change Candidate ID"
+                  style={{ padding: "0.25rem 0.65rem", fontSize: "0.75rem" }}
+                  title="Clear current candidate state and change Candidate ID"
                 >
-                  Sign out
+                  Change Candidate
                 </button>
               )}
             </div>

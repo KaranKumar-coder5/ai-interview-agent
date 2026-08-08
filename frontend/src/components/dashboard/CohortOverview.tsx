@@ -1,10 +1,10 @@
-import type { CandidateData } from "../../data/candidates.js";
+import type { CandidateRecord } from "../../api/types.js";
 import { AUTHORITATIVE_CURRICULUM_DAYS } from "../../data/curriculum.js";
 import { Badge } from "../common/Badge.js";
 import { Card } from "../common/Card.js";
 
 interface CohortOverviewProps {
-  candidate: CandidateData;
+  candidate: CandidateRecord;
 }
 
 export function CohortOverview({ candidate }: CohortOverviewProps) {
@@ -13,7 +13,7 @@ export function CohortOverview({ candidate }: CohortOverviewProps) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
         <div>
           <h2 className="h3">Authoritative Interview Evaluation Topics</h2>
-          <span className="caption">Evaluation topics for candidate {candidate.name} loaded from backend/data/curriculum.json</span>
+          <span className="caption">Evaluation topics for candidate {candidate.member.name} ({candidate.member.id}) loaded from backend/data/curriculum.json</span>
         </div>
         <span className="mono" style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
           {AUTHORITATIVE_CURRICULUM_DAYS.length} Days / 8 Questions
