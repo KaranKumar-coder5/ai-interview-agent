@@ -1,16 +1,28 @@
-import type { AnswerAnalysis, Feedback, Question, Session } from "../types.js";
+import type {
+  AdaptiveDecision,
+  AnswerAnalysis,
+  Feedback,
+  GeneratedQuestion,
+  Question,
+  QuestionGenerationContext,
+  Session,
+} from "../types.js";
 import { getLLMConfig } from "./config.js";
 import type { LLMProvider } from "./provider.js";
 import {
+  buildAdaptiveSelectionPrompt,
   buildAnswerAnalysisPrompt,
   buildFeedbackPrompt,
   buildFollowUpPrompt,
+  buildQuestionGenerationPrompt,
 } from "./prompts.js";
 import {
   parseJsonContent,
+  validateAdaptiveSelection,
   validateAnswerAnalysis,
   validateFeedback,
   validateFollowUp,
+  validateGeneratedQuestion,
 } from "./validator.js";
 
 function extractSanitizedErrorDetail(text: string): string {
@@ -144,8 +156,30 @@ export class GroqProvider implements LLMProvider {
     candidateAnswer: string,
     session: Session,
   ): Promise<AnswerAnalysis> {
+    if (process.env.NODE_ENV !== "production") {
+      const firstSnippet = candidateAnswer.slice(0, 60).replace(/\n/g, " ");
+      const lastSnippet = candidateAnswer.slice(-60).replace(/\n/g, " ");
+      console.log(
+        `[GroqProvider Dev Evaluation Request] Operation: analyzeAnswer | Provider: groq | Model: ${
+          this.modelName
+        } | QuestionID: ${question.id} | QuestionText: "${question.question.slice(
+          0,
+          80,
+        )}..." | AnswerLength: ${candidateAnswer.length} | FirstSnippet: "${firstSnippet}" | LastSnippet: "${lastSnippet}"`,
+      );
+    }
+
     const prompt = buildAnswerAnalysisPrompt(question, candidateAnswer, session);
     const rawText = await this.generateWithTimeout(prompt);
+
+    if (process.env.NODE_ENV !== "production") {
+      console.log(
+        `[GroqProvider Dev Evaluation Raw Response] QuestionID: ${
+          question.id
+        } | RawText: "${rawText.slice(0, 300)}..."`,
+      );
+    }
+
     const json = parseJsonContent(rawText);
     const validated = validateAnswerAnalysis(json);
 
@@ -197,6 +231,51 @@ export class GroqProvider implements LLMProvider {
         );
       }
       throw new Error("Groq returned malformed structured feedback JSON.");
+    }
+
+    return validated;
+  }
+
+  async selectNextQuestion(
+    availableQuestions: Question[],
+    lastAnalysis?: AnswerAnalysis,
+    session?: Session,
+  ): Promise<AdaptiveDecision | null> {
+    if (!availableQuestions || availableQuestions.length === 0) return null;
+    const prompt = buildAdaptiveSelectionPrompt(availableQuestions, lastAnalysis, session);
+    const rawText = await this.generateWithTimeout(prompt);
+    const json = parseJsonContent(rawText);
+    const askedIds = session?.askedQuestions || [];
+    const validated = validateAdaptiveSelection(json, availableQuestions, askedIds);
+
+    if (!validated) return null;
+
+    const matchedQ = availableQuestions.find((q) => q.id === validated.questionId);
+    if (!matchedQ) return null;
+
+    return {
+      questionId: matchedQ.id,
+      strategy: validated.strategy,
+      reason: validated.reason,
+      selectedQuestion: matchedQ,
+    };
+  }
+
+  async generateQuestion(
+    context: QuestionGenerationContext,
+  ): Promise<GeneratedQuestion | null> {
+    const prompt = buildQuestionGenerationPrompt(context);
+    const rawText = await this.generateWithTimeout(prompt);
+    const json = parseJsonContent(rawText);
+    const validated = validateGeneratedQuestion(json, context.askedQuestionTexts);
+
+    if (!validated) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error(
+          `[GroqProvider Dev Error] Malformed generated question JSON schema or duplicate question text from model ${this.modelName}.`,
+        );
+      }
+      return null;
     }
 
     return validated;

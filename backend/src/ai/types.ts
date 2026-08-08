@@ -83,6 +83,45 @@ export interface Curriculum {
 export interface Question extends CurriculumQuestion {
   day: number;
   dayTitle: string;
+  difficulty?: "basic" | "intermediate" | "advanced";
+  tags?: string[];
+}
+
+export type AdaptiveStrategy =
+  | "probe_weakness"
+  | "deepen_strength"
+  | "progression"
+  | "topic_balance";
+
+export interface GeneratedQuestion {
+  question: string;
+  topic: string;
+  difficulty: "basic" | "intermediate" | "advanced";
+  focus: string;
+  reason: string;
+}
+
+export interface QuestionGenerationContext {
+  day: number;
+  dayTitle: string;
+  topic: string;
+  targetDifficulty: "basic" | "intermediate" | "advanced";
+  strategy: AdaptiveStrategy;
+  previousQuestion?: string;
+  candidateAnswer?: string;
+  lastAnalysis?: AnswerAnalysis;
+  askedQuestionTexts: string[];
+  candidateName: string;
+  candidateRole?: string;
+  candidateRecord?: CandidateRecord | null;
+}
+
+export interface AdaptiveDecision {
+  questionId: string;
+  strategy: AdaptiveStrategy;
+  reason: string;
+  selectedQuestion: Question;
+  selectedAt?: number;
 }
 
 export interface AnswerAnalysis {
@@ -102,6 +141,8 @@ export interface InterviewTurn {
   isFollowUp: boolean;
   candidateAnswer?: string;
   analysis?: AnswerAnalysis;
+  adaptiveStrategy?: AdaptiveStrategy;
+  adaptiveReason?: string;
 }
 
 export interface Session {
@@ -119,6 +160,7 @@ export interface Session {
   /** Index of the question that will be asked next (legacy compatibility). */
   nextQuestionIndex: number;
   topicScores: Record<string, number[]>;
+  adaptiveDecisions?: AdaptiveDecision[];
   startedAt: number;
   done: boolean;
 }

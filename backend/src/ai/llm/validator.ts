@@ -1,4 +1,10 @@
-import type { AnswerAnalysis, Feedback, TopicFeedback } from "../types.js";
+import type {
+  AdaptiveStrategy,
+  AnswerAnalysis,
+  Feedback,
+  Question,
+  TopicFeedback,
+} from "../types.js";
 
 export function parseJsonContent(rawText: string): unknown {
   try {
@@ -17,7 +23,8 @@ export function validateAnswerAnalysis(data: unknown): AnswerAnalysis | null {
   if (typeof data !== "object" || data === null) return null;
   const obj = data as Record<string, unknown>;
 
-  const score = typeof obj.score === "number" ? Math.max(0, Math.min(10, Math.round(obj.score))) : null;
+  const score =
+    typeof obj.score === "number" ? Math.max(0, Math.min(10, Math.round(obj.score))) : null;
   const depth =
     obj.depth === "superficial" || obj.depth === "adequate" || obj.depth === "deep"
       ? obj.depth
@@ -64,7 +71,10 @@ export function validateFeedback(data: unknown, candidateName: string): Feedback
   const obj = data as Record<string, unknown>;
 
   const summary = typeof obj.summary === "string" ? obj.summary.trim() : "";
-  const overallScore = typeof obj.overallScore === "number" ? Math.max(0, Math.min(100, Math.round(obj.overallScore))) : null;
+  const overallScore =
+    typeof obj.overallScore === "number"
+      ? Math.max(0, Math.min(100, Math.round(obj.overallScore)))
+      : null;
 
   const strengths = Array.isArray(obj.strengths)
     ? obj.strengths.filter((s): s is string => typeof s === "string" && s.trim() !== "")
@@ -74,7 +84,12 @@ export function validateFeedback(data: unknown, candidateName: string): Feedback
     ? obj.areasForImprovement.filter((a): a is string => typeof a === "string" && a.trim() !== "")
     : [];
 
-  if (!summary || overallScore === null || strengths.length === 0 || areasForImprovement.length === 0) {
+  if (
+    !summary ||
+    overallScore === null ||
+    strengths.length === 0 ||
+    areasForImprovement.length === 0
+  ) {
     return null;
   }
 
@@ -85,7 +100,10 @@ export function validateFeedback(data: unknown, candidateName: string): Feedback
         const tObj = item as Record<string, unknown>;
         const day = typeof tObj.day === "number" ? tObj.day : 1;
         const title = typeof tObj.title === "string" ? tObj.title : `Day ${day}`;
-        const score = typeof tObj.score === "number" ? Math.max(0, Math.min(100, Math.round(tObj.score))) : 75;
+        const score =
+          typeof tObj.score === "number"
+            ? Math.max(0, Math.min(100, Math.round(tObj.score)))
+            : 75;
         const status =
           tObj.status === "strong" || tObj.status === "developing" || tObj.status === "needs_work"
             ? tObj.status
@@ -109,5 +127,124 @@ export function validateFeedback(data: unknown, candidateName: string): Feedback
     strengths,
     areasForImprovement,
     topicBreakdown,
+  };
+}
+
+export function validateAdaptiveSelection(
+  data: unknown,
+  availableQuestions: Question[],
+  askedQuestionIds: string[],
+): { questionId: string; strategy: AdaptiveStrategy; reason: string } | null {
+  if (typeof data !== "object" || data === null) return null;
+  const obj = data as Record<string, unknown>;
+
+  const questionId = typeof obj.questionId === "string" ? obj.questionId.trim() : "";
+  const rawStrategy = typeof obj.strategy === "string" ? obj.strategy.trim().toLowerCase() : "";
+  const reason = typeof obj.reason === "string" ? obj.reason.trim() : "Adaptive selection";
+
+  const validStrategies: AdaptiveStrategy[] = [
+    "probe_weakness",
+    "deepen_strength",
+    "progression",
+    "topic_balance",
+  ];
+
+  if (!questionId || !validStrategies.includes(rawStrategy as AdaptiveStrategy)) {
+    return null;
+  }
+
+  // MUST exist in available controlled question bank
+  const match = availableQuestions.find((q) => q.id === questionId);
+  if (!match) {
+    return null;
+  }
+
+  // MUST NOT have been asked already
+  if (askedQuestionIds.includes(questionId)) {
+    return null;
+  }
+
+  return {
+    questionId: match.id,
+    strategy: rawStrategy as AdaptiveStrategy,
+    reason: reason || `Selected ${match.id} via ${rawStrategy}`,
+  };
+}
+
+export function isDuplicateQuestionText(
+  newQuestion: string,
+  askedQuestionTexts: string[],
+  threshold = 0.5,
+): boolean {
+  if (!askedQuestionTexts || askedQuestionTexts.length === 0) return false;
+
+  const normalize = (str: string) =>
+    str
+      .toLowerCase()
+      .replace(/[^\w\s]/g, "")
+      .split(/\s+/)
+      .filter((w) => w.length > 2);
+
+  const newWords = new Set(normalize(newQuestion));
+  if (newWords.size === 0) return false;
+
+  for (const asked of askedQuestionTexts) {
+    const askedWords = new Set(normalize(asked));
+    if (askedWords.size === 0) continue;
+
+    const intersection = new Set([...newWords].filter((x) => askedWords.has(x)));
+    const union = new Set([...newWords, ...askedWords]);
+    const jaccard = intersection.size / union.size;
+
+    if (jaccard >= threshold) return true;
+  }
+
+  return false;
+}
+
+export function validateGeneratedQuestion(
+  data: unknown,
+  askedQuestionTexts: string[] = [],
+): import("../types.js").GeneratedQuestion | null {
+  if (typeof data !== "object" || data === null) return null;
+  const obj = data as Record<string, unknown>;
+
+  const question = typeof obj.question === "string" ? obj.question.trim() : "";
+  const topic = typeof obj.topic === "string" ? obj.topic.trim() : "AI Engineering";
+  const rawDiff = typeof obj.difficulty === "string" ? obj.difficulty.trim().toLowerCase() : "intermediate";
+  const focus = typeof obj.focus === "string" ? obj.focus.trim() : "Technical evaluation";
+  const reason = typeof obj.reason === "string" ? obj.reason.trim() : "Dynamically generated question";
+
+  // 1. Non-empty string
+  if (!question) return null;
+
+  // 2. Reasonably sized (15 to 500 chars)
+  if (question.length < 15 || question.length > 500) return null;
+
+  // 3. Question format check
+  const hasQuestionMark = question.includes("?");
+  const hasQuestionKeyword = /\b(what|how|explain|describe|compare|why|can|could|would|discuss|detail)\b/i.test(question);
+  if (!hasQuestionMark && !hasQuestionKeyword) return null;
+
+  // 4. Valid difficulty
+  const validDifficulties: ("basic" | "intermediate" | "advanced")[] = ["basic", "intermediate", "advanced"];
+  const difficulty = validDifficulties.includes(rawDiff as any)
+    ? (rawDiff as "basic" | "intermediate" | "advanced")
+    : "intermediate";
+
+  // 5. Must NOT contain internal leak terms
+  const internalLeakTerms = ["score:", "gapsidentified", "evaluation:", "feedbacksnippet", "system_persona", "json_object"];
+  const lowerQ = question.toLowerCase();
+  if (internalLeakTerms.some((term) => lowerQ.includes(term))) return null;
+
+  // 6. Semantic duplicate prevention
+  if (isDuplicateQuestionText(question, askedQuestionTexts)) return null;
+
+  return {
+    question,
+    topic,
+    difficulty,
+    focus,
+    reason,
   };
 }

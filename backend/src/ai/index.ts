@@ -13,6 +13,8 @@ import type { LLMProvider } from "./llm/provider.js";
 import { InterviewPlanner } from "./planner.js";
 import type { Candidate, InterviewResponse } from "./types.js";
 
+export { AdaptiveQuestionSelector } from "./adaptive.js";
+export { QuestionGenerator } from "./generator.js";
 export {
   candidateRecordToCandidate,
   getCandidateById,

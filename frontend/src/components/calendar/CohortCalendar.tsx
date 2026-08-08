@@ -17,7 +17,7 @@ export function CohortCalendar({ candidate }: CohortCalendarProps) {
 
   return (
     <div>
-      <Card style={{ marginBottom: "1.5rem", background: "linear-gradient(135deg, var(--bg-surface) 0%, #0d1a33 100%)" }}>
+      <Card style={{ marginBottom: "1.5rem", background: "linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-surface-hover) 100%)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
           <div>
             <span className="caption" style={{ color: "var(--accent-primary)", fontWeight: 600 }}>

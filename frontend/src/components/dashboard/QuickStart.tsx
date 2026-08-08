@@ -19,7 +19,7 @@ export function QuickStart({
   const candidateName = candidate.member.name;
 
   return (
-    <Card style={{ background: "linear-gradient(135deg, var(--bg-surface) 0%, #111a2f 100%)", border: "1px solid var(--border-medium)" }}>
+    <Card style={{ background: "linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-surface-hover) 100%)", border: "1px solid var(--border-medium)" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
         <div>
           <span className="caption" style={{ color: "var(--accent-primary)", fontWeight: 600 }}>

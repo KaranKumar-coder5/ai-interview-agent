@@ -19,7 +19,12 @@ export function QuestionCard({
   isCompleted,
 }: QuestionCardProps) {
   return (
-    <Card style={{ border: isFollowUp ? "1px solid var(--warning-border)" : "1px solid var(--border-medium)" }}>
+    <Card
+      style={{
+        border: isFollowUp ? "1px solid var(--probing-border)" : "1px solid var(--border-medium)",
+        backgroundColor: isFollowUp ? "var(--probing-bg)" : "var(--bg-surface)",
+      }}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.85rem", flexWrap: "wrap", gap: "0.5rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           {day && <Badge variant="accent">Day {day}</Badge>}
@@ -30,7 +35,7 @@ export function QuestionCard({
           {isCompleted ? (
             <Badge variant="success">Interview Completed</Badge>
           ) : isFollowUp ? (
-            <Badge variant="warning">⚡ Adaptive Follow-up Probe</Badge>
+            <Badge variant="gold">⚡ Adaptive Follow-up Probe</Badge>
           ) : (
             <Badge variant="info">Curriculum Evaluation Question</Badge>
           )}

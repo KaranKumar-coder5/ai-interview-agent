@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 
-export type BadgeVariant = "neutral" | "accent" | "success" | "warning" | "error" | "info";
+export type BadgeVariant = "neutral" | "accent" | "gold" | "success" | "warning" | "error" | "info";
 
 interface BadgeProps {
   children: ReactNode;

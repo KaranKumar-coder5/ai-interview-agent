@@ -1,7 +1,10 @@
 import type {
+  AdaptiveDecision,
   AnswerAnalysis,
   Feedback,
+  GeneratedQuestion,
   Question,
+  QuestionGenerationContext,
   Session,
   TopicFeedback,
 } from "../types.js";
@@ -21,6 +24,16 @@ export interface LLMProvider {
   ): Promise<string> | string;
 
   generateFeedback(session: Session): Promise<Feedback> | Feedback;
+
+  selectNextQuestion?(
+    availableQuestions: Question[],
+    lastAnalysis?: AnswerAnalysis,
+    session?: Session,
+  ): Promise<AdaptiveDecision | null> | AdaptiveDecision | null;
+
+  generateQuestion?(
+    context: QuestionGenerationContext,
+  ): Promise<GeneratedQuestion | null> | GeneratedQuestion | null;
 }
 
 /**
@@ -45,15 +58,23 @@ export class DeterministicInterviewProvider implements LLMProvider {
     const domainKeywords: Record<string, string[]> = {
       "LLM internals": ["token", "prediction", "transformer", "weight", "probabilit"],
       "Context & limits": ["window", "token", "memory", "cost", "latency", "truncat"],
+      "Transformer architecture": ["query", "key", "value", "attention", "head", "matrix", "qkv"],
+      "Prompt engineering": ["prompt", "system", "injection", "hallucination", "template", "structure"],
       "RAG overview": ["retrieval", "vector", "embedding", "document", "knowledge", "search"],
       "Retrieval quality": ["precision", "recall", "relevance", "chunk", "rerank", "eval"],
+      "Hybrid search & reranking": ["dense", "bm25", "hybrid", "rerank", "sparse", "fusion", "recall"],
+      "Chunking & indexing": ["chunk", "overlap", "embedding", "latency", "semantic", "index"],
       "Agent vs chat": ["tool", "action", "function", "autonomous", "loop", "call"],
       "Agent loops": ["retry", "error", "fallback", "state", "step", "reflect"],
+      "Agent planning & multi-agent": ["plan", "state", "machine", "multi-agent", "coordination", "step"],
+      "Agent memory": ["memory", "buffer", "vector", "scratchpad", "conversation", "state"],
       "Evaluation metrics": ["rouge", "bleu", "faithfulness", "accuracy", "llm-as-a-judge"],
       "Production monitoring": ["latency", "throughput", "cost", "drift", "logging", "alert"],
+      "LLM-as-a-Judge": ["judge", "eval", "regression", "pipeline", "benchmark", "rubric"],
+      "Serving & latency": ["cache", "rate-limit", "latency", "spike", "load", "batch"],
     };
 
-    const expected = domainKeywords[question.topic] || ["model", "data", "system"];
+    const expected = domainKeywords[question.topic] || ["model", "data", "system", "vector", "search", "retrieval"];
     const foundKeywords = expected.filter((kw) => text.includes(kw));
 
     let depth: "superficial" | "adequate" | "deep" = "adequate";

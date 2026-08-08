@@ -49,7 +49,7 @@ describe("Session Progress & Summary Layer", () => {
     assert.ok(firstQuestion);
 
     const answer =
-      "A large language model uses a transformer architecture for next-token prediction based on trained weights and token probabilities.";
+      "A large language model predicts next tokens based on data.";
     const contRes = await continueInterview("prog-2", answer);
 
     const progress = getSessionProgress("prog-2");

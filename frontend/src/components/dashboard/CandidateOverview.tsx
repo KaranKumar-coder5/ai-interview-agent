@@ -47,7 +47,7 @@ export function CandidateOverview({ candidate }: CandidateOverviewProps) {
 
         <div style={{ background: "var(--bg-app)", padding: "0.85rem 1rem", borderRadius: "var(--radius-md)", border: "1px solid var(--border-subtle)" }}>
           <span className="caption">First-Try Success</span>
-          <div className="mono" style={{ fontSize: "1.35rem", fontWeight: 700, color: "#a855f7", marginTop: "0.15rem" }}>
+          <div className="mono" style={{ fontSize: "1.35rem", fontWeight: 700, color: "var(--accent-primary)", marginTop: "0.15rem" }}>
             {signals.missionsFirstTry}
           </div>
         </div>

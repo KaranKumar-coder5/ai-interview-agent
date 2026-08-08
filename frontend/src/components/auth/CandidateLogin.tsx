@@ -19,31 +19,32 @@ export function CandidateLogin({ onLogin, isLoading, errorMsg }: CandidateLoginP
 
   return (
     <div style={{ maxWidth: "440px", margin: "4rem auto 0 auto", padding: "0 1rem" }}>
-      <Card style={{ padding: "2.25rem" }}>
+      <Card style={{ padding: "2.25rem", border: "1px solid var(--border-medium)", boxShadow: "var(--shadow-md)" }}>
         <div style={{ textAlign: "center", marginBottom: "1.75rem" }}>
           <div
             style={{
-              width: "48px",
-              height: "48px",
+              width: "52px",
+              height: "52px",
               borderRadius: "var(--radius-md)",
               backgroundColor: "var(--accent-primary)",
+              border: "1px solid var(--gold-border)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               fontWeight: "bold",
               fontSize: "1.35rem",
-              color: "#fff",
+              color: "var(--text-inverse)",
               margin: "0 auto 0.85rem auto",
-              boxShadow: "0 0 18px var(--accent-glow)",
+              boxShadow: "var(--shadow-sm)",
             }}
           >
             AI
           </div>
-          <h2 className="h2" style={{ letterSpacing: "0.05em" }}>
-            AI INTERVIEW AGENT
+          <h2 className="h2" style={{ letterSpacing: "0.04em", fontSize: "1.25rem" }}>
+            ROYAL AI INTERVIEWER
           </h2>
           <span className="caption" style={{ marginTop: "0.35rem", display: "block" }}>
-            Enter your Candidate ID to access candidate dashboard
+            Enter your assigned Candidate ID to open your cohort evaluation portal
           </span>
         </div>
 

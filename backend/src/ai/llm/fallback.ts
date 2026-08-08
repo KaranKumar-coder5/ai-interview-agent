@@ -1,4 +1,12 @@
-import type { AnswerAnalysis, Feedback, Question, Session } from "../types.js";
+import type {
+  AdaptiveDecision,
+  AnswerAnalysis,
+  Feedback,
+  GeneratedQuestion,
+  Question,
+  QuestionGenerationContext,
+  Session,
+} from "../types.js";
 
 import { DeterministicInterviewProvider } from "./provider.js";
 import type { LLMProvider } from "./provider.js";
@@ -15,6 +23,9 @@ export interface FallbackObservabilityState {
   provider: "gemini" | "grok" | "cerebras" | "groq" | "deterministic";
   fallback: boolean;
   fallbackReason?: FallbackReason;
+  questionGeneration?: boolean;
+  strategy?: string;
+  difficulty?: string;
 }
 
 export class FallbackInterviewProvider implements LLMProvider {
@@ -56,6 +67,7 @@ export class FallbackInterviewProvider implements LLMProvider {
       provider: this.primaryName,
       fallback: !this.primary,
       fallbackReason: !this.primary ? "missing_configuration" : undefined,
+      questionGeneration: false,
     };
   }
 
@@ -66,19 +78,32 @@ export class FallbackInterviewProvider implements LLMProvider {
   private categorizeError(err: unknown): FallbackReason {
     if (err instanceof Error) {
       const msg = err.message.toLowerCase();
-      if (msg.includes("missing") || msg.includes("unconfigured") || msg.includes("401") || msg.includes("unauthorized")) {
+      if (
+        msg.includes("missing") ||
+        msg.includes("unconfigured") ||
+        msg.includes("401") ||
+        msg.includes("unauthorized")
+      ) {
         return "missing_configuration";
       }
       if (msg.includes("time") || msg.includes("timeout") || msg.includes("abort")) {
         return "timeout";
       }
-      if (msg.includes("network") || msg.includes("fetch") || msg.includes("econnrefused")) {
+      if (
+        msg.includes("network") ||
+        msg.includes("fetch") ||
+        msg.includes("econnrefused")
+      ) {
         return "network_error";
       }
       if (msg.includes("429") || msg.includes("rate limit") || msg.includes("quota")) {
         return "rate_limit";
       }
-      if (msg.includes("malformed") || msg.includes("invalid") || msg.includes("json")) {
+      if (
+        msg.includes("malformed") ||
+        msg.includes("invalid") ||
+        msg.includes("json")
+      ) {
         return "invalid_response";
       }
     }
@@ -190,5 +215,74 @@ export class FallbackInterviewProvider implements LLMProvider {
     }
 
     return this.fallback.generateFeedback(session);
+  }
+
+  async selectNextQuestion(
+    availableQuestions: Question[],
+    lastAnalysis?: AnswerAnalysis,
+    session?: Session,
+  ): Promise<AdaptiveDecision | null> {
+    if (this.primary && typeof this.primary.selectNextQuestion === "function") {
+      try {
+        const res = await this.primary.selectNextQuestion(
+          availableQuestions,
+          lastAnalysis,
+          session,
+        );
+        if (res) {
+          this.lastObservabilityState = { provider: this.primaryName, fallback: false };
+          return res;
+        }
+      } catch (err: unknown) {
+        const reason = this.categorizeError(err);
+        this.lastObservabilityState = {
+          provider: this.primaryName,
+          fallback: true,
+          fallbackReason: reason,
+        };
+        if (process.env.NODE_ENV !== "production") {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(
+            `[FallbackInterviewProvider Dev Observability] Primary provider "${this.primaryName}" selectNextQuestion failed (${reason}): ${msg}`,
+          );
+        }
+      }
+    }
+    return null;
+  }
+
+  async generateQuestion(
+    context: QuestionGenerationContext,
+  ): Promise<GeneratedQuestion | null> {
+    if (this.primary && typeof this.primary.generateQuestion === "function") {
+      try {
+        const res = await this.primary.generateQuestion(context);
+        if (res) {
+          this.lastObservabilityState = {
+            provider: this.primaryName,
+            fallback: false,
+            questionGeneration: true,
+            strategy: context.strategy,
+            difficulty: context.targetDifficulty,
+          };
+          return res;
+        }
+      } catch (err: unknown) {
+        const reason = this.categorizeError(err);
+        this.lastObservabilityState = {
+          provider: this.primaryName,
+          fallback: true,
+          fallbackReason: reason,
+          questionGeneration: false,
+        };
+        if (process.env.NODE_ENV !== "production") {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(
+            `[FallbackInterviewProvider Dev Observability] Primary provider "${this.primaryName}" generateQuestion failed (${reason}): ${msg}`,
+          );
+        }
+      }
+    }
+    return null;
   }
 }

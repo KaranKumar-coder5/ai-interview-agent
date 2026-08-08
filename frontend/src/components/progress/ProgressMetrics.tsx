@@ -28,7 +28,7 @@ export function ProgressMetrics({ progress }: ProgressMetricsProps) {
 
         <Card>
           <span className="caption">Adaptive Follow-ups</span>
-          <div style={{ fontSize: "1.75rem", fontWeight: 700, margin: "0.2rem 0", color: "var(--warning)" }}>
+          <div style={{ fontSize: "1.75rem", fontWeight: 700, margin: "0.2rem 0", color: "var(--gold-accent)" }}>
             {progress.followUpCount}
           </div>
           <span className="caption">Probing questions</span>

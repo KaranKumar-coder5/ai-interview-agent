@@ -450,3 +450,98 @@ All entries correspond to real implementation milestones, human reviews, automat
   - Verified `git diff --check` (0 formatting/whitespace errors).
 - **Git Commit**: `[Pending commit]`
 - **Notes / Limitations**: Groq is configured as the active primary live LLM provider using `openai/gpt-oss-120b`. Gemini, Grok/xAI, and Cerebras adapters remain preserved in the codebase for multi-provider flexibility.
+
+---
+
+## Milestone 13 — Adaptive Interview Intelligence
+
+- **Date**: August 9, 2026
+- **Developer / Team Member**: Karan (Backend lead)
+- **AI Tool Used**: Antigravity AI Coding Assistant
+- **Development Milestone**: Adaptive Interview Intelligence
+- **Goal**: Transform the interview engine from a mostly fixed question sequence into an adaptive interview system that dynamically evaluates candidate answers, probes weaknesses, deepens strengths, and selects next questions from an approved controlled question bank without allowing LLM question hallucinations.
+- **Architecture & Design**:
+  - Implemented `AdaptiveQuestionSelector` (`backend/src/ai/adaptive.ts`) coordinating LLM-recommended and rule-based deterministic adaptive question selection.
+  - **Controlled Question Bank Guardrail**: The LLM is strictly restricted to recommending question IDs from the approved question bank (`backend/src/ai/questions.ts`). The backend validates that every recommended `questionId` exists in the approved bank and has NOT already been asked in the session.
+  - **Adaptive Decision Strategies**:
+    - `probe_weakness`: Triggered when candidate demonstrates superficial depth or low score (<5), selecting a targeted question in the weak domain.
+    - `deepen_strength`: Triggered when candidate demonstrates deep mastery (score >= 8), selecting an advanced/higher-difficulty concept in the domain.
+    - `topic_balance` / `progression`: Maintains balanced curriculum coverage across all 4 evaluation domains (Days 1, 2, 3, 4) in an 8-question session.
+  - **Deterministic Rule-Based Fallback**: If LLM adaptive selection fails, times out, returns malformed JSON, or selects an invalid/used question ID, `AdaptiveQuestionSelector` falls back to deterministic rule-based selection, ensuring the interview engine never crashes and never gets stuck.
+  - **Repetition Prevention**: Guarantees a question ID is never asked twice in the same interview session.
+- **Files or Areas Affected**:
+  - `backend/src/ai/adaptive.ts` [NEW]
+  - `backend/test/adaptive.test.ts` [NEW]
+  - `backend/src/ai/questions.ts`
+  - `backend/src/ai/types.ts`
+  - `backend/src/ai/planner.ts`
+  - `backend/src/ai/index.ts`
+  - `backend/src/ai/llm/provider.ts`
+  - `backend/src/ai/llm/groq.ts`
+  - `backend/src/ai/llm/fallback.ts`
+  - `backend/src/ai/llm/prompts.ts`
+  - `backend/src/ai/llm/validator.ts`
+  - `backend/test/progress.test.ts`
+  - `backend/package.json`
+  - `docs/AI_USAGE_LOG.md`
+- **Human Review Performed**:
+  - Verified anti-hallucination guardrails (LLM cannot invent custom question text), verified repetition prevention, verified 4-day curriculum coverage across 8 main questions, verified deterministic fallback execution, and verified zero secret leakage.
+- **Testing Performed**:
+  - Executed `npm run typecheck` across workspaces (0 errors).
+  - Executed backend test suite (`npm test -w backend`), passing 124/124 tests across 11 test suites (up from 112/112).
+  - Executed `npm run build` (clean backend and frontend builds).
+  - Verified `git diff --check` (0 formatting/whitespace errors).
+- **Git Commit**: `[Pending commit]`
+- **Notes / Limitations**: Adaptive question selection operates within the controlled 16-question bank, ensuring curriculum safety while providing dynamic, AI-driven interview adaptability.
+
+---
+
+## Milestone 14 — Dynamic LLM Question Generator & Adaptive Curriculum Scope
+
+- **Date**: August 9, 2026
+- **Developer / Team Member**: Karan (Backend lead)
+- **AI Tool Used**: Antigravity AI Coding Assistant
+- **Development Milestone**: Dynamic LLM Question Generator & Adaptive Curriculum Scope
+- **Goal**: Transition the AI technical interviewer from selecting predefined questions out of a static question bank to dynamically generating tailored, context-aware, technically rigorous interview questions using Groq while maintaining strict curriculum topic scope, semantic repetition prevention, and resilient fallback execution.
+- **Architecture & Design**:
+  - Implemented `QuestionGenerator` (`backend/src/ai/generator.ts`) coordinating dynamic LLM question generation, semantic repetition detection, regeneration bounds, and deterministic question bank fallbacks.
+  - **Structured LLM Schema**: Standardized question generation requests via `buildQuestionGenerationPrompt` returning JSON:
+    ```json
+    {
+      "question": "...",
+      "topic": "...",
+      "difficulty": "basic | intermediate | advanced",
+      "focus": "...",
+      "reason": "..."
+    }
+    ```
+  - **Validation & Anti-Repetition Guardrails**: Created `validateGeneratedQuestion` and `isDuplicateQuestionText` in `validator.ts`. The validation layer enforces question formatting, non-emptiness, length boundaries (15-500 chars), absence of internal evaluation leak terms, and normalized Jaccard word-overlap similarity (<0.5) against all previously asked questions in the session.
+  - **Difficulty & Knowledge-Gap Adaptation**:
+    - `probe_weakness`: Triggered on superficial/weak answers (`score < 5`), generating a basic/diagnostic question targeting specific identified gaps.
+    - `deepen_strength`: Triggered on deep/mastery answers (`score >= 8`), generating an advanced architectural trade-off question.
+    - `progression`: Advances curriculum coverage across all 4 evaluation modules (Days 1, 2, 3, 4).
+  - **Regeneration Limits & Resilient Fallback**: Enforces a strict max regeneration attempt limit (3 attempts). If LLM returns malformed JSON, empty output, or duplicate question text, or if Groq times out/fails, `QuestionGenerator` seamlessly falls back to rule-based predefined question selection without crashing.
+  - **Observability**: Updated `FallbackObservabilityState` to report `{ provider: "groq", fallback: false, questionGeneration: true, strategy: "...", difficulty: "..." }` and detailed dev-only logs.
+- **Files or Areas Affected**:
+  - `backend/src/ai/generator.ts` [NEW]
+  - `backend/test/generator.test.ts` [NEW]
+  - `backend/src/ai/planner.ts`
+  - `backend/src/ai/types.ts`
+  - `backend/src/ai/index.ts`
+  - `backend/src/ai/llm/provider.ts`
+  - `backend/src/ai/llm/groq.ts`
+  - `backend/src/ai/llm/fallback.ts`
+  - `backend/src/ai/llm/prompts.ts`
+  - `backend/src/ai/llm/validator.ts`
+  - `backend/package.json`
+  - `package.json`
+  - `docs/AI_USAGE_LOG.md`
+- **Human Review Performed**:
+  - Verified dynamic question generation flow, verified semantic duplicate prevention, verified target difficulty adaptation, verified max regeneration bounds (3 attempts), verified zero API secret leakage, and verified clean deterministic fallback execution.
+- **Testing Performed**:
+  - Executed `npm run typecheck` across workspaces (0 errors).
+  - Executed test suite (`npm test`), passing 144/144 tests across 13 test suites (up from 127/127).
+  - Executed `npm run build` (clean backend and frontend production builds).
+  - Verified `git diff --check` (0 formatting/whitespace errors).
+- **Git Commit**: `[Pending commit]`
+- **Notes / Limitations**: Groq dynamically generates interview questions scoped by curriculum objectives. Static question bank is retained strictly for offline tests and failure fallbacks.

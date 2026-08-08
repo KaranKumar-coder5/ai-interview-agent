@@ -11,7 +11,7 @@ export function ScoreOverview({ feedback }: ScoreOverviewProps) {
   const scoreVariant = score >= 80 ? "success" : score >= 60 ? "warning" : "error";
 
   return (
-    <Card style={{ background: "linear-gradient(135deg, var(--bg-surface) 0%, #101c36 100%)", border: "1px solid var(--border-medium)", marginBottom: "1.5rem" }}>
+    <Card style={{ background: "linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-surface-hover) 100%)", border: "1px solid var(--border-medium)", marginBottom: "1.5rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
         <div>
           <span className="caption" style={{ color: "var(--accent-primary)", fontWeight: 600 }}>

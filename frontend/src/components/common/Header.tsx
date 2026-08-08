@@ -1,4 +1,5 @@
 import { Badge } from "./Badge.js";
+import { ThemeSwitcher } from "./ThemeSwitcher.js";
 
 interface HeaderProps {
   backendOnline: boolean | null;
@@ -18,7 +19,8 @@ export function Header({
       style={{
         borderBottom: "1px solid var(--border-subtle)",
         backgroundColor: "var(--bg-surface)",
-        padding: "0.85rem 1.5rem",
+        padding: "0.9rem 1.5rem",
+        transition: "background-color 0.25s ease, border-color 0.25s ease",
       }}
     >
       <div
@@ -32,38 +34,42 @@ export function Header({
           gap: "1rem",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.85rem" }}>
           <div
             style={{
-              width: "28px",
-              height: "28px",
+              width: "34px",
+              height: "34px",
               borderRadius: "var(--radius-md)",
               backgroundColor: "var(--accent-primary)",
+              border: "1px solid var(--gold-border)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontWeight: "bold",
+              fontWeight: 800,
               fontSize: "0.9rem",
-              color: "#fff",
-              boxShadow: "0 0 10px var(--accent-glow)",
+              color: "var(--text-inverse)",
+              letterSpacing: "0.06em",
+              boxShadow: "var(--shadow-sm)",
             }}
           >
             AI
           </div>
           <div>
-            <h1 style={{ fontSize: "1.1rem", fontWeight: 700, margin: 0 }}>
-              AI Interview Agent
+            <h1 style={{ fontSize: "1.15rem", fontWeight: 700, margin: 0, color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
+              AI Technical Interviewer
             </h1>
             <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-              Enterprise AI Engineering Cohort Evaluation
+              Enterprise Cohort Adaptive Intelligence Platform
             </span>
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "0.85rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.85rem", flexWrap: "wrap" }}>
+          <ThemeSwitcher />
+
           {candidateName && (
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <Badge variant="accent">
+              <Badge variant="gold">
                 👤 {candidateName}
               </Badge>
               {onLogout && (
