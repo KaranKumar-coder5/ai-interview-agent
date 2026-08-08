@@ -151,3 +151,234 @@ All entries correspond to real implementation milestones, human reviews, automat
   - Verified structured output validation, deterministic fallback triggers, timeout handling, missing key handling, 8+ question minimum enforcement, 4+ day minimum enforcement, and HTTP API compatibility.
 - **Git Commit**: `f239ae8` — `feat: integrate Gemini interview provider`
 - **Notes / Limitations**: The application is configured to use Gemini when `GEMINI_API_KEY` is present in the server environment. The normal automated test suite does not require a live Gemini API call and uses deterministic/mocked behavior where applicable.
+
+---
+
+## Milestone 5: Session Progress & Summary Layer
+
+- **Date**: August 8, 2026
+- **Developer / Team Member**: Karan (Backend lead)
+- **AI Tool Used**: Antigravity AI Coding Assistant
+- **Development Milestone**: Session Progress & Summary Layer
+- **Goal**: Expose live interview session metrics and post-interview performance summaries via dedicated API routes (`GET /api/interview/:sessionId/progress` and `GET /api/interview/:sessionId/summary`), refactoring circular dependencies and ensuring accurate current position tracking.
+- **Prompt Summary**: Requested implementation of session progress and summary layer endpoints, circular dependency refactoring by extracting `InterviewError` into `backend/src/ai/errors.ts`, calculating live candidate progress metrics (`daysCovered`, `topicsCovered`, `currentPosition`), enforcing summary restrictions on active sessions (`interview_not_completed`), and creating test suites.
+- **Work Performed**:
+  - Refactored `InterviewError` into independent module `backend/src/ai/errors.ts`, eliminating circular dependency between `progress.ts` and `index.ts`.
+  - Created `backend/src/ai/progress.ts` with `buildSessionProgress`, `getSessionProgress`, `buildSessionSummary`, and `getSessionSummary`.
+  - Defined TypeScript interfaces `SessionProgress`, `SessionSummary`, `CurrentPosition` in `backend/src/ai/types.ts`.
+  - Exposed HTTP routes `GET /api/interview/:sessionId/progress` and `GET /api/interview/:sessionId/summary` in `backend/src/routes/interview.ts`.
+  - Fixed `currentPosition` tracking to accurately reflect current question domain vs follow-up questions vs completed state (`null`).
+  - Added unit test suite `backend/test/progress.test.ts` (6 tests) and extended `backend/test/http-smoke.test.ts`.
+- **Files or Areas Affected**:
+  - `backend/src/ai/errors.ts` [NEW]
+  - `backend/src/ai/progress.ts` [NEW]
+  - `backend/test/progress.test.ts` [NEW]
+  - `backend/src/ai/types.ts`
+  - `backend/src/ai/index.ts`
+  - `backend/src/routes/interview.ts`
+  - `backend/test/http-smoke.test.ts`
+  - `backend/package.json`
+- **Human Review Performed**:
+  - Verified removal of circular dependencies, verified `InterviewError` re-exports for external API compatibility, verified HTTP 400 error handling for summary requests on active interviews, and reviewed current position state calculation logic.
+- **Testing Performed**:
+  - Executed `npm run typecheck` (0 errors).
+  - Executed backend test suite (`npm test -w backend`), passing 30/30 tests across 5 test suites.
+  - Executed `npm run build` and `git diff --check`.
+- **Git Commit**: `da9b34e` — `feat: add interview progress and summary layer`
+- **Notes / Limitations**: Progress and summary layer operates in-memory alongside existing session context without requiring external databases.
+
+---
+
+## Milestone 5A: Authoritative Cohort Dataset Migration
+
+- **Date**: August 8, 2026
+- **Developer / Team Member**: Karan (Backend lead)
+- **AI Tool Used**: Antigravity AI Coding Assistant
+- **Development Milestone**: Authoritative Cohort Dataset Migration
+- **Goal**: Migrate the authoritative 31-day cohort curriculum (`curriculum.json`) and complete 20-candidate dataset (`candidates.json`) into `backend/data/` to replace legacy stub data while preserving active interview engine evaluation compatibility.
+- **Prompt Summary**: Requested migration of full 31-day curriculum dataset and authoritative candidate records (`CAND-001` through `CAND-020`) from supplied hackathon resources into backend repository, extending TypeScript data types, building synchronous loader helpers (`loadCurriculum`, `loadCandidates`, `getCandidateById`), preserving legacy test profile compatibility (`priya-dev`, `marcus-ml`), and writing verification test suite without modifying frontend or engine behavior.
+- **Work Performed**:
+  - Copied authoritative 31-day curriculum (`curriculum.json`) to `backend/data/curriculum.json` (31 days, 8 modules).
+  - Copied authoritative candidate dataset (`candidates.json`) to `backend/data/candidates.json` (20 candidate records containing `member`, `missions`, `signals`).
+  - Defined TypeScript interfaces (`CohortCurriculum`, `CohortModule`, `CohortDay`, `CandidateRecord`, `CandidateMember`, `CandidateMission`, `CandidateSignals`) in `backend/src/ai/types.ts`.
+  - Extended data loading layer in `backend/src/ai/data.ts` with `loadCurriculum()`, `loadCandidates()`, `getCandidateById()`, and `candidateRecordToCandidate()`.
+  - Updated `backend/src/ai/questions.ts` to preserve the 4-day / 8-question evaluation domain questions (`d1q1`..`d4q2`) for active interview sessions.
+  - Added unit test suite `backend/test/data-migration.test.ts` (10 tests) and fixed test isolation hooks (`afterEach`) across provider test suites.
+- **Files or Areas Affected**:
+  - `backend/data/candidates.json` [NEW]
+  - `backend/test/data-migration.test.ts` [NEW]
+  - `backend/data/curriculum.json`
+  - `backend/src/ai/types.ts`
+  - `backend/src/ai/data.ts`
+  - `backend/src/ai/questions.ts`
+  - `backend/src/ai/index.ts`
+  - `backend/src/routes/candidates.ts`
+  - `backend/test/gemini-provider.test.ts`
+  - `backend/test/intelligence.test.ts`
+  - `backend/package.json`
+- **Human Review Performed**:
+  - Verified 31-day curriculum loading, 20-candidate record integrity, unique ID mapping (`CAND-001`..`CAND-020`), strict distinction between 31-day cohort roadmap and 4-day evaluation curriculum, and backward compatibility for existing test suite IDs.
+- **Testing Performed**:
+  - Executed `npm run typecheck` (0 errors).
+  - Executed backend test suite (`npm test -w backend`), passing 44/44 tests across 6 test suites.
+  - Verified `npm run build` and `git diff --check`.
+- **Git Commit**: `8373b8b` — `feat: migrate authoritative cohort datasets`
+- **Notes / Limitations**: Dataset migration updated underlying data representations without changing candidate personalization logic or interview engine question selection yet.
+
+---
+
+## Milestone 5B: Candidate ID API
+
+- **Date**: August 8, 2026
+- **Developer / Team Member**: Karan (Backend lead)
+- **AI Tool Used**: Antigravity AI Coding Assistant
+- **Development Milestone**: Candidate ID API
+- **Goal**: Expose a read-only backend API endpoint `GET /api/candidates/:candidateId` to serve candidate profiles based on candidate ID lookup, enforcing data isolation without passwords or external authentication dependencies.
+- **Prompt Summary**: Requested implementation of candidate lookup route `GET /api/candidates/:candidateId` returning full authoritative `CandidateRecord` (`{ member, missions, signals }`), trimming whitespace, handling case insensitivity, returning HTTP 404 with `candidate_not_found` for invalid IDs, prohibiting bulk candidate listing endpoints (`GET /api/candidates`), and writing HTTP smoke tests.
+- **Work Performed**:
+  - Updated `backend/src/routes/candidates.ts` to return full authoritative `CandidateRecord` directly on `GET /api/candidates/:candidateId`.
+  - Integrated whitespace trimming and case-insensitive lookup via `getCandidateById`.
+  - Added structured HTTP 404 error handler (`{ error: "candidate_not_found", message: "..." }`).
+  - Enforced strict candidate isolation (requests for `CAND-001` return only `CAND-001` data; no bulk list route exposed).
+  - Updated `backend/test/http-smoke.test.ts` with dedicated Candidate ID API tests (lookup for `CAND-001` and `CAND-020`, schema assertions, isolation checks, 404 response assertions).
+- **Files or Areas Affected**:
+  - `backend/src/routes/candidates.ts`
+  - `backend/test/http-smoke.test.ts`
+- **Human Review Performed**:
+  - Verified exact output shape (`{ member, missions, signals }`), verified HTTP 404 error format, verified zero bulk endpoints exposed, and confirmed zero authentication/JWT/password dependencies.
+- **Testing Performed**:
+  - Executed `npm run typecheck` (0 errors).
+  - Executed backend test suite (`npm test -w backend`), passing 47/47 tests across 6 test suites.
+  - Executed `npm run build` and `git diff --check`.
+- **Git Commit**: `51a4e60` — `feat: add candidate ID lookup API`
+- **Notes / Limitations**: Candidate ID serves as the lookup credential for the hackathon application. Password and JWT authentication are intentionally omitted per specification.
+
+---
+
+## Milestone 5C: Personalized Interview Engine
+
+- **Date**: August 8, 2026
+- **Developer / Team Member**: Karan (Backend lead)
+- **AI Tool Used**: Antigravity AI Coding Assistant
+- **Development Milestone**: Personalized Interview Engine
+- **Goal**: Make the interview engine personalize question selection using candidate learning history (`CandidateRecord`), prioritizing weak/failed/skipped/multi-attempt mission areas while maintaining 8+ question / 4+ day curriculum guarantees and follow-up probing.
+- **Prompt Summary**: Requested design and implementation of deterministic candidate personalization signal algorithm (`personalization.ts`), calculating domain risk scores based on candidate mission status (`passed`, `skipped`, `attempts`), reordering evaluation domain questions, associating `candidateId` with interview sessions, supporting both `{ sessionId, candidateId }` and legacy `{ sessionId, candidate }` payloads in `POST /api/interview`, and writing comprehensive tests.
+- **Work Performed**:
+  - Created `backend/src/ai/personalization.ts` with `derivePersonalizationSignals()`, `getPersonalizedQuestions()`, and `getPersonalizedQuestionAt()`.
+  - Implemented deterministic risk-scoring logic:
+    - Failed missions (`passed: false`): +10 risk score (HIGH priority)
+    - Skipped missions (`skipped: true`): +8 risk score (HIGH priority)
+    - Multi-attempt missions (`attempts > 1`): +(attempts - 1) * 3 risk score
+  - Updated `InterviewPlanner` (`backend/src/ai/planner.ts`) to fetch candidate learning signals and prioritize high-risk domain questions first.
+  - Updated `Session` type in `backend/src/ai/types.ts`, `context.ts`, and `progress.ts` to store and output `candidateId`.
+  - Updated `startInterview` (`backend/src/ai/index.ts`) to support `candidateId` string payload while maintaining backward compatibility for legacy `candidate` object payloads.
+  - Ensured minimum guarantees remain enforced (8+ questions, 4+ curriculum days, adaptive follow-up probing via `DecisionStrategy`).
+  - Added dedicated test suite `backend/test/personalization.test.ts` (12 tests) and updated `backend/package.json`.
+- **Files or Areas Affected**:
+  - `backend/src/ai/personalization.ts` [NEW]
+  - `backend/test/personalization.test.ts` [NEW]
+  - `backend/src/ai/types.ts`
+  - `backend/src/ai/context.ts`
+  - `backend/src/ai/planner.ts`
+  - `backend/src/ai/progress.ts`
+  - `backend/src/ai/index.ts`
+  - `backend/package.json`
+- **Human Review Performed**:
+  - Verified deterministic algorithm (explainable from mission history, zero hardcoded candidate ID conditionals), verified minimum 8 questions and 4 days coverage, verified candidate session isolation, and verified backward compatibility.
+- **Testing Performed**:
+  - Executed `npm run typecheck` across workspaces (0 errors).
+  - Executed backend test suite (`npm test -w backend`), passing 59/59 tests across 7 test suites.
+  - Executed `npm run build` and `git diff --check`.
+- **Git Commit**: `b6a6d61` — `feat: add personalized interview engine`
+- **Notes / Limitations**: Question selection is personalized based on candidate cohort learning history. Evaluation domain questions remain structured across core curriculum modules.
+
+---
+
+## Milestone 6: Frontend Foundation & Interview Workspace
+
+- **Date**: August 8, 2026
+- **Developer / Team Member**: Karan (Frontend & Backend lead)
+- **AI Tool Used**: Antigravity AI Coding Assistant
+- **Development Milestone**: Frontend Foundation & Interview Workspace
+- **Goal**: Implement the frontend web application for the AI Interview Agent using React 19, TypeScript, Vite, and Vanilla CSS design system, featuring typed API client, candidate selection, interview chat interface, real-time progress indicators, completed summary dashboards, and backend health monitoring.
+- **Prompt Summary**: Requested implementation of React + Vite frontend workspace using clean modern UI/UX principles, glassmorphism CSS components, typed API client (`api.ts`), interactive interview chat workspace with live turns and follow-up badges, candidate profile selector, progress indicators (`SessionProgress`), completion feedback breakdown, cohort calendar visualization, and backend connection status indicator without adding external component libraries.
+- **Work Performed**:
+  - Built custom dark-mode glassmorphism design system in `frontend/src/index.css` featuring CSS variables, smooth transitions, badges, and responsive card layouts.
+  - Implemented strongly-typed backend API client `frontend/src/services/api.ts` connecting to `/api/interview`, `/api/interview/:sessionId/progress`, `/api/interview/:sessionId/summary`, `/api/candidates/:candidateId`, and `/health`.
+  - Created interactive interview workspace component with turn history, active question card, superficial answer follow-up indicator, typing status, and candidate response form.
+  - Added session progress header bar displaying completed days, questions asked, follow-up count, and active position.
+  - Added structured evaluation summary modal presenting score gauge, topic breakdown, strengths, and areas for improvement.
+  - Added backend status indicator badge (`ONLINE` / `DISCONNECTED`) linked to `/health`.
+- **Files or Areas Affected**:
+  - `frontend/src/App.tsx`
+  - `frontend/src/index.css`
+  - `frontend/src/services/api.ts` [NEW]
+  - `frontend/src/components/` [NEW]
+- **Human Review Performed**:
+  - Reviewed React state management, error state boundaries, responsiveness, typed API payload validation, and visual styling quality.
+- **Testing Performed**:
+  - Executed `npm run typecheck` (0 errors).
+  - Executed full application build (`npm run build`), producing optimized production Vite bundle (`dist/`).
+- **Git Commit**: `[Pending commit]`
+- **Notes / Limitations**: Operates seamlessly against local backend API server. Uses Vanilla CSS and standard Web APIs with zero external UI framework dependencies.
+
+---
+
+## Milestone 7: Frontend Data Integrity Cleanup & Authoritative Alignment
+
+- **Date**: August 8, 2026
+- **Developer / Team Member**: Karan (Frontend & Backend lead)
+- **AI Tool Used**: Antigravity AI Coding Assistant
+- **Development Milestone**: Frontend Data Integrity Cleanup & Authoritative Alignment
+- **Goal**: Perform repository-wide data integrity cleanup on the frontend, removing fabricated candidate profile fields, synthetic mission histories, and non-authoritative 31-day data structures to align the UI strictly with authoritative backend datasets (`curriculum.json` and `candidates.json`).
+- **Prompt Summary**: Requested audit and cleanup of frontend candidate/curriculum datasets, removing invented candidate records, synthetic mission histories, and fabricated Days 5–31 data, aligning frontend curriculum and candidate representations with the authoritative backend datasets (`backend/data/curriculum.json` and `backend/data/candidates.json`), while candidate-specific profile data is retrieved through `GET /api/candidates/:candidateId`.
+- **Work Performed**:
+  - Audited frontend data definitions in `frontend/src/data/` and components.
+  - Removed synthetic candidate profile fields, hardcoded mission attempt mocks, and invented candidate IDs.
+  - Updated candidate selection and profile presentation components to fetch authoritative candidate records (`{ member, missions, signals }`) via `GET /api/candidates/:candidateId`.
+  - Updated cohort calendar and curriculum view components to represent the authoritative 31-day cohort roadmap (`curriculum.json`).
+  - Added explicit UI labels clarifying the relationship between the 31-day cohort learning journey and the 4-day interview evaluation domains.
+  - Preserved the distinction between the 31-day cohort roadmap used to represent the learner's overall AI engineering journey and the 4-day / 8-question interview evaluation curriculum currently used by the interview engine.
+- **Files or Areas Affected**:
+  - `frontend/src/data/candidates.ts`
+  - `frontend/src/data/curriculum.ts`
+  - `frontend/src/components/calendar/CohortCalendar.tsx`
+  - `frontend/src/components/dashboard/CandidateProfileCard.tsx`
+  - `frontend/src/App.tsx`
+- **Human Review Performed**:
+  - Verified complete removal of fabricated candidate data, verified exact alignment with backend authoritative JSON files, and verified clear UI messaging regarding curriculum scope.
+- **Testing Performed**:
+  - Executed `npm run typecheck` (0 errors).
+  - Executed `npm run build` (clean production build).
+  - Verified zero data discrepancies between frontend display and backend API responses.
+- **Git Commit**: `[Pending commit]`
+- **Notes / Limitations**: Ensures complete compliance with hackathon authenticity directives. All candidate metrics displayed in UI originate strictly from `backend/data/candidates.json`.
+
+---
+
+## Milestone 8: Candidate ID Access & Dashboard Isolation Flow
+
+- **Date**: August 8, 2026
+- **Developer / Team Member**: Karan (Frontend & Backend lead)
+- **AI Tool Used**: Antigravity AI Coding Assistant
+- **Development Milestone**: Candidate ID Access & Dashboard Isolation Flow
+- **Goal**: Implement Candidate ID based candidate access and dashboard isolation on the frontend, allowing candidates to enter their assigned Candidate ID (`CAND-001` through `CAND-020`) to access the dashboard and personalized interview experience with strict data isolation.
+- **Prompt Summary**: Requested implementation of candidate ID entry/lookup access flow on frontend, fetching candidate profile via `GET /api/candidates/:candidateId`, storing candidate context in app state, displaying candidate-specific dashboard/missions, launching personalized interview sessions with `candidateId`, and handling invalid ID errors gracefully without passwords or JWT libraries.
+- **Work Performed**:
+  - Created Candidate ID entry access card component featuring input validation, loading states, and error handling for unknown IDs (`candidate_not_found`).
+  - Integrated candidate lookup API (`GET /api/candidates/:candidateId`) to validate candidate IDs against backend dataset.
+  - Enforced single-candidate dashboard isolation in React state (once selected with `CAND-001`, the application renders only `CAND-001` profile, missions, learning signals, and interview sessions).
+  - Updated session initialization to pass `candidateId` to `POST /api/interview`.
+  - Added candidate session reset / switch capability.
+- **Files or Areas Affected**:
+  - `frontend/src/components/auth/CandidateAccessCard.tsx` [NEW]
+  - `frontend/src/App.tsx`
+  - `frontend/src/services/api.ts`
+- **Human Review Performed**:
+  - Verified candidate access flow with valid IDs (`CAND-001`..`CAND-020`), verified clear error message for invalid IDs (`CAND-999`), verified candidate-specific dashboard and interview session isolation, and confirmed zero password/auth library dependencies.
+- **Testing Performed**:
+  - Executed `npm run typecheck` (0 errors).
+  - Executed full build (`npm run build`).
+  - Verified end-to-end integration between frontend candidate access flow and backend personalized interview engine.
+- **Git Commit**: `[Pending commit]`
+- **Notes / Limitations**: Provides hackathon-appropriate candidate access based on authoritative candidate IDs.
