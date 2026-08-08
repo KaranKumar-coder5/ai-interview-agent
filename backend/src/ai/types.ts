@@ -169,6 +169,7 @@ export interface SessionProgress {
   currentPosition: CurrentPosition | null;
   completed: boolean;
   feedback: Feedback | null;
+  turns?: InterviewTurn[];
 }
 
 export interface SessionSummary {

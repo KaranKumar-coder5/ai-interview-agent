@@ -33,7 +33,43 @@ describe("Gemini Provider, Validator & Resilient Fallback Tests", () => {
     const config = getLLMConfig();
     assert.ok(typeof config.model === "string");
     assert.ok(typeof config.timeoutMs === "number");
-    assert.equal(config.provider, "deterministic"); // Default when GEMINI_API_KEY is not set
+    assert.equal(config.provider, "deterministic"); // Default when API keys are not set
+  });
+
+  it("1b. Resolves Grok configuration when LLM_PROVIDER=grok or XAI_API_KEY is present", () => {
+    const origProvider = process.env.LLM_PROVIDER;
+    const origXaiKey = process.env.XAI_API_KEY;
+    const origXaiModel = process.env.XAI_MODEL;
+    const origGeminiKey = process.env.GEMINI_API_KEY;
+
+    try {
+      delete process.env.GEMINI_API_KEY;
+      process.env.LLM_PROVIDER = "grok";
+      process.env.XAI_API_KEY = "xai-test-key-123";
+      process.env.XAI_MODEL = "grok-2-custom";
+
+      const config = getLLMConfig();
+      assert.equal(config.provider, "grok");
+      assert.equal(config.apiKey, "xai-test-key-123");
+      assert.equal(config.model, "grok-2-custom");
+
+      // Test fallback resolution when LLM_PROVIDER is unset but XAI_API_KEY is set
+      delete process.env.LLM_PROVIDER;
+      const configAuto = getLLMConfig();
+      assert.equal(configAuto.provider, "grok");
+
+      // Test explicit provider without API key (returns provider with undefined key without throwing)
+      process.env.LLM_PROVIDER = "grok";
+      delete process.env.XAI_API_KEY;
+      const configNoKey = getLLMConfig();
+      assert.equal(configNoKey.provider, "grok");
+      assert.equal(configNoKey.apiKey, undefined);
+    } finally {
+      if (origProvider) process.env.LLM_PROVIDER = origProvider; else delete process.env.LLM_PROVIDER;
+      if (origXaiKey) process.env.XAI_API_KEY = origXaiKey; else delete process.env.XAI_API_KEY;
+      if (origXaiModel) process.env.XAI_MODEL = origXaiModel; else delete process.env.XAI_MODEL;
+      if (origGeminiKey) process.env.GEMINI_API_KEY = origGeminiKey; else delete process.env.GEMINI_API_KEY;
+    }
   });
 
   it("2. Parses and validates valid Answer Analysis JSON", () => {
