@@ -7,6 +7,13 @@ import type {
   SessionSummary,
 } from "./types.js";
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+
+function buildUrl(path: string): string {
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return API_BASE_URL ? `${API_BASE_URL}${cleanPath}` : cleanPath;
+}
+
 class ApiClientError extends Error {
   readonly status: number;
   readonly code: string;
@@ -42,7 +49,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 export async function getHealth(): Promise<HealthResponse> {
   try {
-    const res = await fetch("/health");
+    const res = await fetch(buildUrl("/health"));
     return await handleResponse<HealthResponse>(res);
   } catch (err) {
     if (err instanceof ApiClientError) throw err;
@@ -57,7 +64,7 @@ export async function getCandidate(candidateId: string): Promise<CandidateRecord
   }
 
   try {
-    const res = await fetch(`/api/candidates/${encodeURIComponent(trimmed)}`);
+    const res = await fetch(buildUrl(`/api/candidates/${encodeURIComponent(trimmed)}`));
     return await handleResponse<CandidateRecord>(res);
   } catch (err) {
     if (err instanceof ApiClientError) {
@@ -84,7 +91,7 @@ export async function startInterview(
         ? { sessionId, candidateId: candidateOrId.trim() }
         : { sessionId, candidate: candidateOrId };
 
-    const res = await fetch("/api/interview", {
+    const res = await fetch(buildUrl("/api/interview"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -101,7 +108,7 @@ export async function continueInterview(
   message: string,
 ): Promise<InterviewResponse> {
   try {
-    const res = await fetch("/api/interview", {
+    const res = await fetch(buildUrl("/api/interview"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId, message }),
@@ -115,7 +122,7 @@ export async function continueInterview(
 
 export async function getSessionProgress(sessionId: string): Promise<SessionProgress> {
   try {
-    const res = await fetch(`/api/interview/${encodeURIComponent(sessionId)}/progress`);
+    const res = await fetch(buildUrl(`/api/interview/${encodeURIComponent(sessionId)}/progress`));
     return await handleResponse<SessionProgress>(res);
   } catch (err) {
     if (err instanceof ApiClientError) throw err;
@@ -125,7 +132,7 @@ export async function getSessionProgress(sessionId: string): Promise<SessionProg
 
 export async function getSessionSummary(sessionId: string): Promise<SessionSummary> {
   try {
-    const res = await fetch(`/api/interview/${encodeURIComponent(sessionId)}/summary`);
+    const res = await fetch(buildUrl(`/api/interview/${encodeURIComponent(sessionId)}/summary`));
     return await handleResponse<SessionSummary>(res);
   } catch (err) {
     if (err instanceof ApiClientError) throw err;
