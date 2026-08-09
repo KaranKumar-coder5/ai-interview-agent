@@ -545,3 +545,83 @@ All entries correspond to real implementation milestones, human reviews, automat
   - Verified `git diff --check` (0 formatting/whitespace errors).
 - **Git Commit**: `[Pending commit]`
 - **Notes / Limitations**: Groq dynamically generates interview questions scoped by curriculum objectives. Static question bank is retained strictly for offline tests and failure fallbacks.
+
+---
+
+## Milestone 15 — Final Render Production Deployment & Deployment Debugging
+
+- **Date**: August 9, 2026
+- **Developer / Team Member**: Karan (Backend lead)
+- **AI Tool Used**: Antigravity AI Coding Assistant
+- **Development Milestone**: Final Render Production Deployment & Deployment Debugging
+- **Goal**: Document the AI-assisted work used to make the AI Technical Interviewer application production-ready and successfully deploy it to Render as a separate Static Site frontend and Web Service backend.
+- **Development / AI Assistance Summary**:
+  - Diagnosed the difference between Vercel single-project serverless deployment and Render dual-service (Static Site + Web Service) deployment architecture.
+  - Diagnosed the backend "Application exited early" process failure on Render. Identified that `backend/src/index.ts` had been conditionally preventing `app.listen()` when `NODE_ENV=production`, causing the process to exit immediately upon import.
+  - Updated `backend/src/index.ts` so the Express server unconditionally starts and listens on Render's provided `process.env.PORT` (or default fallback port `3000`), binding strictly to `0.0.0.0:${PORT}` for external accessibility.
+  - Configured the frontend and backend as separate Render deployment services: React + Vite frontend as a Render Static Site, and Express + TypeScript backend as a Render Web Service (`https://ai-interview-agent-4ai9.onrender.com`).
+  - Configured the frontend to communicate with the backend using a centralized environment-based `VITE_API_BASE_URL` helper (`frontend/src/api/client.ts`) rather than hardcoding production URLs, while preserving relative path fallbacks (`""`) for local dev proxying.
+  - Configured resilient CORS headers in `backend/src/app.ts` to support cross-origin frontend requests from `FRONTEND_URL` and `.onrender.com` origins while permitting local development origins.
+  - Verified exact Express API route contracts:
+    - `GET /health` -> `{ status: "ok", service: "ai-interview-agent" }`
+    - `GET /` -> `{ status: "ok", service: "AI Technical Interviewer API Server", ... }`
+    - `GET /api/candidates/:candidateId`
+    - `POST /api/interview`
+    - `GET /api/interview/:sessionId/progress`
+    - `GET /api/interview/:sessionId/summary`
+  - Diagnosed production 404 responses by comparing local routing, deployed branch (`main`), Render root directory settings, and frontend `VITE_API_BASE_URL` targeting.
+  - Configured required production environment variables (`LLM_PROVIDER=groq`, `GROQ_API_KEY`, `GROQ_MODEL=openai/gpt-oss-120b`, `NODE_ENV=production`, `VITE_API_BASE_URL`) without committing secrets or API keys.
+  - Confirmed that no MongoDB, Redis, or external databases were required for deployment, preserving the existing candidate and session data structures.
+  - Preserved existing Vercel deployment files (`api/index.ts` and `vercel.json`) as harmless and independent adapters.
+- **Deployment Architecture**:
+  - **Frontend**: React 19 + Vite + TypeScript deployed as a Render Static Site (`frontend` directory, `dist` publish directory, SPA rewrite rule `/*` -> `/index.html`).
+  - **Backend**: Node.js + Express + TypeScript deployed as a Render Web Service (`backend` directory, `0.0.0.0:${PORT}`).
+  - **Communication**: Frontend (`https://ai-interview-agent-1-c0b6.onrender.com`) → `VITE_API_BASE_URL` → Express backend (`https://ai-interview-agent-4ai9.onrender.com`) → `/api/*` routes → Groq LLM provider.
+- **Production Requirements**:
+  - Backend listens on `process.env.PORT`
+  - Backend binds to `0.0.0.0`
+  - Frontend uses `VITE_API_BASE_URL`
+  - Backend uses `FRONTEND_URL` / `Origin` headers for CORS
+  - LLM secrets remain strictly server-side
+  - No database introduced
+- **AI / Business Logic Integrity**:
+  - The following core application and AI modules were **NOT** changed as part of the deployment work:
+    - `QuestionGenerator`
+    - `InterviewPlanner`
+    - `AnswerAnalyzer`
+    - `AdaptiveQuestionSelector`
+    - `LLMProvider` / `GroqProvider` evaluation logic
+    - Scoring algorithms
+    - Session progression logic
+    - Curriculum logic
+    - Adaptive questioning behavior
+- **Verification Results**:
+  - **TypeScript Typecheck**: **0 errors** (`npm run typecheck` across workspaces).
+  - **Production Build**: **Successful** (`npm run build` compiling backend TS and frontend Vite bundle).
+  - **Test Suite**: **144 / 144 tests passing** across 13 test suites (`npm test`).
+  - **`git diff --check`**: **Clean** (0 formatting/whitespace errors).
+  - **Live Endpoints Verified**:
+    - `GET /health` -> `200 OK` (`{"status":"ok","service":"ai-interview-agent"}`)
+    - `GET /api/candidates/CAND-001` -> `200 OK` (`{"member":{"id":"CAND-001","name":"Sarah Johnson",...}}`)
+    - `GET /api/candidates/cand-003` -> `200 OK` (`{"member":{"id":"CAND-003","name":"Emily Chen",...}}`)
+- **Git Information**:
+  - **Branch**: `main`
+  - **Commit**: `eb678d739ae242a2c481187aee1ab5275a3428c3` — `feat: create CandidateLogin component for candidate ID authentication flow`
+  - **Status**: Final production deployment changes committed and pushed to `origin/main`.
+- **AI Usage / Prompt**:
+  - The user prompt instructed the AI coding assistant to:
+    1. Inspect the existing monorepo architecture and diagnose the Render backend startup failure ("Application exited early").
+    2. Fix Express server production startup behavior in `backend/src/index.ts` so `app.listen()` executes unconditionally on `0.0.0.0:${PORT}`.
+    3. Configure separate Render frontend (Static Site) and backend (Web Service) deployment architecture.
+    4. Implement environment-based API base URL handling in `frontend/src/api/client.ts` (`VITE_API_BASE_URL`).
+    5. Configure resilient CORS headers in `backend/src/app.ts`.
+    6. Verify all API route contracts (`/health`, `/api/candidates/:candidateId`, `/api/interview/*`).
+    7. Preserve all AI/interview business logic, question generation, and test suites.
+    8. Execute workspace typecheck, build, test suite, and `git diff --check`.
+    9. Commit and push the verified production state to `main`.
+- **Lessons / Notes**:
+  - Serverless deployments (Vercel) and Web Service deployments (Render) have fundamental server lifecycle differences: serverless handlers export the app function, while Web Services require a long-running HTTP server.
+  - Render Web Services require `app.listen()` to run unconditionally and bind to `0.0.0.0:${PORT}`.
+  - Decoupled frontend/backend deployments require an environment-based API base URL (`VITE_API_BASE_URL`). Relative `/api/*` paths only work automatically when frontend and backend share the same origin or use a development proxy.
+  - Deployment configuration fixes should be strictly decoupled from core application and AI logic.
+  - Application data requirements should govern database selection; no database should be introduced solely for deployment purposes.
