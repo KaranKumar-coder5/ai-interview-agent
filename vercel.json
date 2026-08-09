@@ -1,0 +1,14 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [
+    {
+      "source": "/health",
+      "destination": "/api"
+    },
+    {
+      "source": "/((?!api|health).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
