@@ -24,7 +24,7 @@ export function CandidateLogin({ onLogin, isLoading, errorMsg }: CandidateLoginP
           <div className="login-geo-ribbon" />
 
           {/* Protruding Tab Accent on Boundary */}
-          <div className="login-brand-tab">PORTAL</div>
+          <div className="login-brand-tab"></div>
 
           <div className="login-brand-content">
             <div
