@@ -26,6 +26,16 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
+app.get("/", (_req, res) => {
+  res.json({
+    status: "ok",
+    service: "AI Technical Interviewer API Server",
+    message: "Backend service is online and healthy.",
+    healthEndpoint: "/health",
+    apiEndpoint: "/api",
+  });
+});
+
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "ai-interview-agent" });
 });
